@@ -67,6 +67,12 @@ final class BrowserSessionManager implements RemoteBrowser {
 
     @Override
     public synchronized RemoteBrowserSession open(BrowserProfileId profileId, String url) {
+        return open(profileId, url, BrowserProxyMode.SYSTEM);
+    }
+
+    @Override
+    public synchronized RemoteBrowserSession open(BrowserProfileId profileId, String url, BrowserProxyMode proxyMode) {
+        java.util.Objects.requireNonNull(proxyMode);
         SharedSession shared = sharedSessions.get(profileId.value());
         if (shared != null && !shared.session.isAvailable()) {
             sharedSessions.remove(profileId.value());
@@ -74,9 +80,11 @@ final class BrowserSessionManager implements RemoteBrowser {
             shared.session.close();
             shared = null;
         }
+        if (shared != null && shared.proxyMode != proxyMode)
+            throw new IllegalStateException("该配置已有不同代理模式的会话，请先关闭后重试");
         if (shared == null) {
-            BrowserSession session = createSession(profileId.value(), url);
-            shared = new SharedSession(session);
+            BrowserSession session = createSession(profiles.acquire(profileId.value()), url, proxyMode);
+            shared = new SharedSession(session, proxyMode);
             sharedSessions.put(profileId.value(), shared);
             sessions.put(session.id(), session);
         }
@@ -110,10 +118,6 @@ final class BrowserSessionManager implements RemoteBrowser {
     private void closePrivate(BrowserSession session) {
         sessions.remove(session.id());
         session.close();
-    }
-
-    private BrowserSession createSession(String profileId, String url) {
-        return createSession(profiles.acquire(profileId), url, BrowserProxyMode.SYSTEM);
     }
 
     private BrowserSession createSession(BrowserProfileLease lease, String url, BrowserProxyMode proxyMode) {
@@ -187,9 +191,11 @@ final class BrowserSessionManager implements RemoteBrowser {
     private static final class SharedSession {
         private final BrowserSession session;
         private int references;
+        private final BrowserProxyMode proxyMode;
 
-        private SharedSession(BrowserSession session) {
+        private SharedSession(BrowserSession session, BrowserProxyMode proxyMode) {
             this.session = session;
+            this.proxyMode = proxyMode;
         }
     }
 }

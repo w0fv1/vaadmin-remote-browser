@@ -61,3 +61,6 @@ implementation(project(":vaadmin-remote-browser"))
 ## 许可证
 
 [MIT License](LICENSE)。浏览器及其他第三方依赖遵循各自许可证，不属于本仓库的 MIT 授权范围。
+
+
+持久配置也可显式直连：`browser.open(profileId, url, BrowserProxyMode.DIRECT)`。同一配置已打开时只允许相同代理策略共享会话；切换策略前需关闭已有引用。无代理设置不会清空该配置的登录数据。
