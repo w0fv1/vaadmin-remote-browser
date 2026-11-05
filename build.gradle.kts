@@ -1,10 +1,12 @@
+import java.util.Properties
+
 plugins {
     `java-library`
     `maven-publish`
 }
 
 group = "dev.w0fv1"
-version = "0.3.0"
+version = "0.4.0"
 
 java {
     withSourcesJar()
@@ -86,5 +88,32 @@ publishing {
                 }
             }
         }
+    }
+}
+
+val browserPlatform = providers.gradleProperty("browserPlatform").orElse(
+    if (System.getProperty("os.name").startsWith("Windows")) "win64" else "linux64")
+val browserRuntimeDirectory = providers.gradleProperty("browserRuntimeDirectory")
+    .map { file(it) }.orElse(layout.buildDirectory.dir("browser-runtime").map { it.asFile })
+val prepareBrowserRuntime by tasks.registering(Exec::class) {
+    inputs.dir("runtime")
+    inputs.property("platform", browserPlatform)
+    outputs.dir(browserRuntimeDirectory)
+    enabled = !providers.gradleProperty("browserRuntimeDirectory").isPresent
+    commandLine(providers.gradleProperty("pythonExecutable").getOrElse("python"),
+        "runtime/prepare.py", "--platform", browserPlatform.get(), "--output", browserRuntimeDirectory.get().absolutePath)
+}
+tasks.processResources {
+    dependsOn(prepareBrowserRuntime)
+    from(browserRuntimeDirectory) {
+        include("runtime.zip", "runtime.properties")
+        into("browser-runtime")
+    }
+    val runtimePath = browserRuntimeDirectory.get()
+    val expectedPlatform = browserPlatform.get()
+    doFirst {
+        val metadata = Properties()
+        runtimePath.resolve("runtime.properties").inputStream().use(metadata::load)
+        require(metadata.getProperty("platform") == expectedPlatform) { "Browser runtime platform mismatch" }
     }
 }

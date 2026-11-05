@@ -4,7 +4,7 @@
 
 ## 开发环境
 
-使用 JDK 25 和仓库自带 Gradle Wrapper，提供 Chrome / Edge。示例入口见 [sample](sample)，依赖版本见 [gradle.properties](gradle.properties)。
+使用 JDK 25 和仓库自带 Gradle Wrapper，首次构建需要下载固定版本浏览器，Linux 打包另需 Podman。示例入口见 [sample](sample)，依赖版本见 [gradle.properties](gradle.properties)。
 
 ```sh
 ./gradlew :test --tests '*BrowserResourceTest'

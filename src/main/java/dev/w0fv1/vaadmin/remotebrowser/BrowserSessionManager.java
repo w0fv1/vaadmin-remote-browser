@@ -132,6 +132,7 @@ final class BrowserSessionManager implements RemoteBrowser {
             session.initialize(url);
             return session;
         } catch (RuntimeException failure) {
+            log.error("浏览器会话启动失败，配置 {}", lease.profileId(), failure);
             if (session != null) {
                 session.close();
             } else {

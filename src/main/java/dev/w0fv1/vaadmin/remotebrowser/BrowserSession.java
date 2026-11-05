@@ -580,6 +580,7 @@ final class BrowserSession {
         tab.applyEnvironment(environment);
         tab.applyTargetInfo(session.call("Target.getTargetInfo", null).path("targetInfo"));
         tab.onLoad(() -> execute(() -> {
+            if (tabs.get(tab.id()) != tab) return;
             tab.markLoaded();
             tab.refresh();
             tab.refreshHistory();
@@ -641,6 +642,7 @@ final class BrowserSession {
         ObjectNode parameters = mapper.createObjectNode();
         parameters.put("targetId", targetId);
         browser.call("Target.closeTarget", parameters);
+        removeClosedTarget(targetId);
     }
 
     private List<String> pageTargets() {
