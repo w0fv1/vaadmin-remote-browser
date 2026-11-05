@@ -19,7 +19,7 @@ final class BrowserRuntimePropertiesTest {
     void defaultsToHeadedChromeAndPersistentProfileRoot() {
         BrowserRuntimeProperties properties = new BrowserRuntimeProperties(null, null, null, null);
 
-        assertThat(properties.mode()).isEqualTo(BrowserMode.HEADED);
+        assertThat(properties.mode()).isEqualTo(BrowserMode.HEADLESS);
         assertThat(properties.channel()).isEqualTo(BrowserChannel.CHROME);
         assertThat(properties.profileRoot()).isEqualTo(Path.of(
                 System.getProperty("user.home"), ".vaadmin-remote-browser", "profiles"));

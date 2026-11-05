@@ -23,7 +23,7 @@ public record BrowserRuntimeProperties(
     @ConstructorBinding
     public BrowserRuntimeProperties {
         if (mode == null) {
-            mode = BrowserMode.HEADED;
+            mode = BrowserMode.HEADLESS;
         }
         if (channel == null) {
             channel = BrowserChannel.CHROME;

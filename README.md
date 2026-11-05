@@ -68,10 +68,10 @@ WebSocket 默认只接受同源连接；需要跨源时显式配置 `browser.rem
 | --- | --- | --- |
 | `browser.remote.enabled` | `BROWSER_REMOTE_ENABLED` | `true` |
 | `browser.remote.sandbox` | `BROWSER_REMOTE_SANDBOX` | `true` |
-| `browser.remote.mode` | `BROWSER_REMOTE_MODE` | `headed` |
+| `browser.remote.mode` | `BROWSER_REMOTE_MODE` | `headless` |
 | `browser.remote.channel` | `BROWSER_REMOTE_CHANNEL` | `chrome` |
 | `browser.remote.profile-root` | `BROWSER_REMOTE_PROFILE_ROOT` | `~/.vaadmin-remote-browser/profiles` |
-| `browser.remote.executable` | `BROWSER_REMOTE_EXECUTABLE` | 按通道自动定位 |
+| `browser.remote.executable` | `BROWSER_REMOTE_EXECUTABLE` | 随包 Chrome；显式选择 msedge 时定位系统 Edge |
 | `browser.remote.websocket-path` | `BROWSER_REMOTE_WEBSOCKET_PATH` | `/browser-stream` |
 | `browser.remote.allowed-origin-patterns` | `BROWSER_REMOTE_ALLOWED_ORIGIN_PATTERNS` | 空（仅同源） |
 | `browser.remote.media-policy` | `BROWSER_REMOTE_MEDIA_POLICY` | `BLOCK` |
@@ -92,8 +92,7 @@ WebSocket 默认只接受同源连接；需要跨源时显式配置 `browser.rem
 
 控制面只用 DevTools 协议，headed 模式的窗口操作走 `Browser` 域，因此在无图形界面的 Linux 上以 `headless` 运行即可，不需要 X11。部署时只需要满足：
 
-- 安装 Chrome/Chromium（自动定位 `/usr/bin/google-chrome`、`/usr/bin/chromium`、`/opt/google/chrome/chrome` 等；其它位置用 `browser.remote.executable` 指定）
-- 中文字体（如 `fonts-noto-cjk`）与常见运行库，否则页面文字与视频会缺字
+- 使用对应平台的随包运行时，构建与依赖入口见下方“随包浏览器”。
 - 以 root 或容器内运行时 Chrome 会拒绝启动，此时显式设置 `browser.remote.sandbox=false`（等价 `--no-sandbox`，会削弱进程隔离，只在这种环境用）
 - 进程目录可写：`browser.remote.profile-root` 需要有足够空间放 Chrome 的用户数据与隐私窗口的一次性目录
 - `gradlew` 以 `100755` 入库；权限若在解压、复制或跨平台中转时丢失，用 `chmod +x gradlew` 恢复，否则第一条命令就是 `Permission denied`
@@ -135,7 +134,7 @@ WebSocket 默认只接受同源连接；需要跨源时显式配置 `browser.rem
 
 由 [`BrowserStealthTest.java`](src/test/java/dev/w0fv1/vaadmin/remotebrowser/BrowserStealthTest.java) 守护，改动时不要绕过：
 
-- 只启动本机安装的原生 Chrome/Edge，不引入 Playwright、Puppeteer、Selenium 等自动化启动器。
+- 通过 CDP 控制随包 Chrome 或显式配置的浏览器。
 - 启动参数只有 [`BrowserRuntime#arguments`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserRuntime.java) 一个来源；其中不出现 `--enable-automation`，并用 `--disable-blink-features=AutomationControlled` 保持 `navigator.webdriver === false`。
 - 不开启 `Runtime.enable`、不使用 `Page.addScriptToEvaluateOnNewDocument`、不注入任何页面脚本；标签页地址与标题取自 `Target.getTargetInfo`。
 - 页面环境只用 Chrome 启动参数与 `Emulation` 域的浏览器原生覆盖实现，见 [`BrowserPageEnvironment.java`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserPageEnvironment.java)，保持原型链与函数 `toString` 原样输出。
@@ -194,3 +193,13 @@ WebSocket 默认只接受同源连接；需要跨源时显式配置 `browser.rem
 ## License
 
 MIT
+
+## 随包浏览器
+
+默认运行固定版本的 Chrome for Testing，采用 HEADLESS 模式。版本、下载地址及校验值见 [运行时锁定文件](runtime/browser-lock.json)。
+
+构建环境需要 Python 3；Linux 运行包还需要 Podman。执行 Gradle 时通过 `-PbrowserPlatform=linux64` 或 `-PbrowserPlatform=win64` 选择发布平台，省略时选择当前平台。跨环境准备的运行包可以通过 `-PbrowserRuntimeDirectory=/absolute/path` 接入，构建会检查平台标识。运行包生成入口为 [prepare.py](runtime/prepare.py)，Linux 动态库与字体由 [Containerfile](runtime/Containerfile) 定义。
+
+运行时从 JAR 中校验并解包浏览器到用户目录，使用进程锁协调并发和原子目录切换。支持 Windows x64 和 glibc 2.36 及以上的 Linux x64；主机仍需允许 Chromium 使用内核沙箱。显式配置 `browser.remote.executable` 可选择其他浏览器程序。
+
+生产机无需安装 Chromium 软件包。库的运行时准备与隔离验证见 [BundledBrowserTest](src/test/java/dev/w0fv1/vaadmin/remotebrowser/BundledBrowserTest.java)。
