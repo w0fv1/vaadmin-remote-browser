@@ -479,29 +479,33 @@ final class BrowserSession {
                 pendingClose = closeFuture;
             }
         }
-        boolean closed = false;
-        if (pendingClose != null) {
-            try {
-                pendingClose.get();
-                closed = true;
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                recordFailure("close", interrupted);
-            } catch (ExecutionException failure) {
-                Throwable cause = failure.getCause();
-                if (cause != null) recordFailure("close", cause);
+        boolean interrupted = Thread.interrupted();
+        try {
+            boolean closed = false;
+            if (pendingClose != null) {
+                while (!closed) {
+                    try {
+                        pendingClose.get();
+                        closed = true;
+                    } catch (InterruptedException failure) {
+                        interrupted = true;
+                    } catch (ExecutionException failure) {
+                        Throwable cause = failure.getCause();
+                        if (cause != null) recordFailure("close", cause);
+                        break;
+                    }
+                }
             }
-        }
-        if (!closed) {
-            try {
-                browser.close();
-            } catch (RuntimeException failure) {
-                recordFailure("close", failure);
+            if (!closed) {
+                try { browser.close(); }
+                catch (RuntimeException failure) { recordFailure("close", failure); }
             }
+            captureLane.shutdownNow();
+            navigationLane.shutdownNow();
+            profileLease.close();
+        } finally {
+            if (interrupted) Thread.currentThread().interrupt();
         }
-        captureLane.shutdownNow();
-        navigationLane.shutdownNow();
-        profileLease.close();
     }
 
     private void scheduleMove() {
