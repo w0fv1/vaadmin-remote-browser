@@ -162,7 +162,7 @@ WebSocket 默认只接受同源连接；需要跨源时显式配置 `browser.rem
 | 标签页与采帧 | [`BrowserTab.java`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserTab.java)、[`BrowserViewport.java`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserViewport.java) |
 | WebSocket 协议与遥测 | [`BrowserStreamHandler.java`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserStreamHandler.java) |
 
-前端到服务端使用 `viewport.resize`、`tab.*`、`stream.configure`、指针消息（`move`/`down`/`up`/`cancel`/`context`/`wheel`）、键盘消息（`key`）与输入法提交（`text`）；服务端返回带 12 字节帧头的 JPEG 分片、会话状态和 `telemetry` 消息。
+前端到服务端使用 `viewport.resize`、`tab.*`、`stream.configure`、指针消息（`move`/`down`/`up`/`cancel`/`context`/`wheel`）、键盘消息（`key`）与输入法提交（`text`）；服务端帧协议与视口尺寸见 [`BrowserFrame`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserFrame.java) 和 [`BrowserStreamHandler`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserStreamHandler.java)。
 
 ## 示例应用
 
@@ -195,3 +195,5 @@ WebSocket 默认只接受同源连接；需要跨源时显式配置 `browser.rem
 ## License
 
 MIT
+
+嵌入单页交互可调用 `BrowserStreamComponent.setOnlyPage(true)`；布局与截图坐标回归见 [`BrowserStreamLayoutTest`](src/test/java/dev/w0fv1/vaadmin/remotebrowser/BrowserStreamLayoutTest.java)。

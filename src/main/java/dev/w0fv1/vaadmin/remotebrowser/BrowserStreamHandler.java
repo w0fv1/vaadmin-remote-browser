@@ -22,7 +22,7 @@ final class BrowserStreamHandler extends AbstractWebSocketHandler {
     private static final int IDLE_INTERVAL_MILLIS = 500;
     private static final int IDLE_THRESHOLD = 2;
     private static final int FRAME_MAGIC = 0x42535452;
-    private static final int FRAME_HEADER_BYTES = 12;
+    private static final int FRAME_HEADER_BYTES = 20;
     private static final int FRAME_CHUNK_BYTES = 16 * 1024;
     private static final String HOST_NAME = hostName();
     private final BrowserSessionManager sessions;
@@ -133,12 +133,12 @@ final class BrowserStreamHandler extends AbstractWebSocketHandler {
                     idleFrames = 0;
                 }
                 if (browser.canCapture()) {
-                    byte[] frame = browser.capture();
+                    BrowserFrame frame = browser.capture();
                     if (frame != null) {
-                        if (lastFrame != null && Arrays.equals(frame, lastFrame)) {
+                        if (lastFrame != null && Arrays.equals(frame.jpeg(), lastFrame)) {
                             idleFrames++;
                         } else {
-                            lastFrame = frame;
+                            lastFrame = frame.jpeg();
                             idleFrames = 0;
                             sendFrame(socket, frame, shaper, state, metrics);
                         }
@@ -174,10 +174,11 @@ final class BrowserStreamHandler extends AbstractWebSocketHandler {
 
     private static void sendFrame(
             WebSocketSession socket,
-            byte[] frame,
+            BrowserFrame captured,
             TrafficShaper shaper,
             BrowserSession.TabsState state,
             StreamMetrics metrics) throws Exception {
+        byte[] frame = captured.jpeg();
         int chunkCount = (frame.length + FRAME_CHUNK_BYTES - 1) / FRAME_CHUNK_BYTES;
         int frameId = metrics.nextFrameId();
         for (int chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++) {
@@ -189,6 +190,8 @@ final class BrowserStreamHandler extends AbstractWebSocketHandler {
             header.putInt(frameId);
             header.putShort((short) chunkIndex);
             header.putShort((short) chunkCount);
+            header.putInt(captured.width());
+            header.putInt(captured.height());
             System.arraycopy(frame, offset, message, FRAME_HEADER_BYTES, length);
             shaper.await(
                     message.length,

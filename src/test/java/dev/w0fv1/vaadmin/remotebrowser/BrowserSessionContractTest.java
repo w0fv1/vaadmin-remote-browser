@@ -78,6 +78,11 @@ final class BrowserSessionContractTest {
             await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
                 assertThat(session.state().viewportWidth()).isEqualTo(1600);
                 assertThat(session.state().viewportHeight()).isEqualTo(900);
+                BrowserFrame frame = session.capture();
+                assertThat(frame).isNotNull();
+                assertThat(frame.width()).isEqualTo(1600);
+                assertThat(frame.height()).isEqualTo(900);
+                assertThat(ImageIO.read(new ByteArrayInputStream(frame.jpeg()))).isNotNull();
             });
         } finally {
             manager.shutdown();
@@ -351,9 +356,9 @@ final class BrowserSessionContractTest {
     private BufferedImage awaitImage(BrowserSession session) throws IOException {
         AtomicReference<BufferedImage> image = new AtomicReference<>();
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
-            byte[] frame = session.capture();
+            BrowserFrame frame = session.capture();
             assertThat(frame).isNotNull();
-            image.set(ImageIO.read(new ByteArrayInputStream(frame)));
+            image.set(ImageIO.read(new ByteArrayInputStream(frame.jpeg())));
             assertThat(image.get()).isNotNull();
         });
         return image.get();

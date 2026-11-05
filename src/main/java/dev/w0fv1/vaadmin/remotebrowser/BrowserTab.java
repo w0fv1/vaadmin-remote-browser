@@ -241,17 +241,18 @@ final class BrowserTab {
         return viewport.clientHeight();
     }
 
-    void resize(int width, int height) {
+    synchronized void resize(int width, int height) {
         viewport.resize(width, height);
     }
 
-    byte[] capture(int quality) {
+    synchronized BrowserFrame capture(int quality, int width, int height) {
         ObjectNode parameters = mapper.createObjectNode();
+        viewport.resize(width, height);
         parameters.put("format", "jpeg");
         parameters.put("quality", quality);
         parameters.put("fromSurface", true);
         JsonNode result = session.call("Page.captureScreenshot", parameters);
-        return Base64.getDecoder().decode(result.path("data").asString(""));
+        return new BrowserFrame(Base64.getDecoder().decode(result.path("data").asString("")), viewport.clientWidth(), viewport.clientHeight());
     }
 
     void move(double x, double y, BrowserInput input) {

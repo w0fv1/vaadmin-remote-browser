@@ -235,17 +235,17 @@ final class BrowserSession {
         return tab.evaluate(expression);
     }
 
-    public byte[] capture() {
+    public BrowserFrame capture() {
         if (!canCapture() || !capturePending.compareAndSet(false, true)) return null;
-        Future<byte[]> pending;
+        Future<BrowserFrame> pending;
         try {
             pending = captureLane.submit(() -> {
                 try {
                     BrowserTab tab = tabs.get(activeTabId);
                     if (tab == null) return null;
-                    tab.resize(viewportWidth, viewportHeight);
+                    BrowserFrame frame = tab.capture(quality, viewportWidth, viewportHeight);
                     refreshActiveState(tab);
-                    return tab.capture(quality);
+                    return frame;
                 } finally {
                     capturePending.set(false);
                 }
