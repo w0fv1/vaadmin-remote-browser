@@ -46,6 +46,9 @@ const STYLES = `
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 8px 24px rgba(0, 0, 0, .10);
 }
+.brs-only-page .brs-tabbar, .brs-only-page .brs-toolbar, .brs-only-page .brs-menu, .brs-only-page .brs-hud { display: none; }
+.brs-only-page .brs-stage { min-height: 0; height: 100%; }
+.brs-only-page .brs-window { box-shadow: none; border-radius: 0; }
 .brs-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 8px 8px 0; }
 .brs-tabs { display: flex; align-items: flex-end; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .brs-tabs::-webkit-scrollbar { display: none; }
@@ -144,6 +147,8 @@ class BrowserStreamElement extends HTMLElement {
   #activeTabId = null
   #tabs = []
   #stream = {quality: 75, intervalMillis: 40, networkEnabled: false, bandwidthBytesPerSecond: 500 * 1024, latencyMillis: 0}
+  #onlyPage = false
+  #displayViewport = {width: 0, height: 0}
   #viewport = {width: 0, height: 0}
   #telemetry = null
   #stats = {frames: 0, bytes: 0, renderFrames: 0, windowStart: 0, fps: 0, renderFps: 0, frameBytes: 0, lastFrameBytes: 0, droppedFrames: 0, serverLatencyMs: -1}
@@ -161,7 +166,6 @@ class BrowserStreamElement extends HTMLElement {
   #reconnectDelay = 0
   #lastMessageAt = 0
   #livenessTimer = null
-  #syncTimer = null
   #requestedWidth = 0
   #requestedHeight = 0
   #everDrew = false
@@ -188,6 +192,13 @@ class BrowserStreamElement extends HTMLElement {
     this.#socket = null
   }
 
+  get onlyPage() { return this.#onlyPage }
+
+  set onlyPage(value) {
+    this.#onlyPage = Boolean(value)
+    this.querySelector('.brs')?.classList.toggle('brs-only-page', this.#onlyPage)
+  }
+
   get streamPath() {
     return this.#streamPath
   }
@@ -202,6 +213,7 @@ class BrowserStreamElement extends HTMLElement {
   }
 
   set sessionId(value) {
+    if (this.#sessionId === value) return
     this.#sessionId = value
     this.#everDrew = false
     this.#failedOpens = 0
@@ -214,7 +226,7 @@ class BrowserStreamElement extends HTMLElement {
   #build() {
     if (this.#canvas) return
     const root = document.createElement('div')
-    root.className = 'brs'
+    root.className = this.#onlyPage ? 'brs brs-only-page' : 'brs'
     root.append(this.#stylesheet())
 
     const windowEl = document.createElement('div')
@@ -380,18 +392,14 @@ class BrowserStreamElement extends HTMLElement {
   #syncViewport() {
     if (!this.#canvas) return
     const frame = this.#canvas.parentElement.getBoundingClientRect()
+    if (frame.width <= 0 || frame.height <= 0) return
+    this.#applyViewport(this.#displayViewport.width, this.#displayViewport.height)
     const width = Math.max(320, Math.round(frame.width))
     const height = Math.max(240, Math.round(frame.height))
     if (this.#requestedWidth === width && this.#requestedHeight === height) return
     this.#requestedWidth = width
     this.#requestedHeight = height
     this.#send({type: 'viewport.resize', width, height})
-  }
-
-  #reconcileViewport(width, height, frame) {
-    if (Math.abs(frame.width - width) < 2 && Math.abs(frame.height - height) < 2) return
-    clearTimeout(this.#syncTimer)
-    this.#syncTimer = setTimeout(() => this.#syncViewport(), 150)
   }
 
   #applyViewport(width, height) {
@@ -402,10 +410,10 @@ class BrowserStreamElement extends HTMLElement {
       this.#renderMetrics()
     }
     const frame = this.#canvas.parentElement.getBoundingClientRect()
+    if (frame.width <= 0 || frame.height <= 0) return
     const scale = Math.min(frame.width / width, frame.height / height)
     this.#canvas.style.width = `${Math.max(1, Math.round(width * scale))}px`
     this.#canvas.style.height = `${Math.max(1, Math.round(height * scale))}px`
-    this.#reconcileViewport(width, height, frame)
     this.#renderHud()
   }
 
@@ -448,9 +456,14 @@ class BrowserStreamElement extends HTMLElement {
 
   #connect() {
     const id = this.#sessionId
-    if (!id || !this.#canvas) return
+    if (!this.#canvas) return
     const generation = ++this.#socketGeneration
     this.#socket?.close()
+    this.#socket = null
+    this.#pending = null
+    clearTimeout(this.#reconnectTimer)
+    clearInterval(this.#livenessTimer)
+    if (!id) return
     this.#latestFrameId = -1
     this.#chunks.clear()
     this.#setEnabled(false)
@@ -574,7 +587,7 @@ class BrowserStreamElement extends HTMLElement {
     this.#tabs = state.tabs || []
     this.#activeTabId = state.activeTabId
     this.#viewport = {width: state.viewportWidth || 0, height: state.viewportHeight || 0}
-    this.#applyViewport(this.#viewport.width, this.#viewport.height)
+    this.#applyViewport(this.#displayViewport.width, this.#displayViewport.height)
     this.#stream = {
       quality: state.quality,
       intervalMillis: state.intervalMillis,
@@ -734,7 +747,7 @@ class BrowserStreamElement extends HTMLElement {
 
   #renderChunk(buffer) {
     const view = new DataView(buffer)
-    if (view.byteLength < 12 || view.getUint32(0) !== 0x42535452) return
+    if (view.byteLength < 20 || view.getUint32(0) !== 0x42535452) return
     const frameId = view.getUint32(4)
     const chunkIndex = view.getUint16(8)
     const chunkCount = view.getUint16(10)
@@ -748,7 +761,7 @@ class BrowserStreamElement extends HTMLElement {
       this.#chunks.set(frameId, frame)
     }
     if (!frame.chunks[chunkIndex]) {
-      const chunk = new Uint8Array(buffer.slice(12))
+      const chunk = new Uint8Array(buffer.slice(20))
       frame.chunks[chunkIndex] = chunk
       frame.received += 1
       frame.bytes += chunk.byteLength
@@ -761,10 +774,10 @@ class BrowserStreamElement extends HTMLElement {
       offset += chunk.byteLength
     }
     this.#chunks.delete(frameId)
-    this.#renderFrame(merged.buffer, frameId)
+    this.#renderFrame(merged.buffer, frameId, view.getUint32(12), view.getUint32(16))
   }
 
-  #renderFrame(buffer, frameId) {
+  #renderFrame(buffer, frameId, width, height) {
     if (frameId < this.#latestFrameId) return
     this.#latestFrameId = frameId
     this.#stats.frames += 1
@@ -783,7 +796,7 @@ class BrowserStreamElement extends HTMLElement {
       this.#stats.windowStart = now
       this.#renderMetrics()
     }
-    this.#pending = {frameId, buffer}
+    this.#pending = {frameId, buffer, width, height, generation: this.#socketGeneration}
     this.#scheduleDraw()
   }
 
@@ -794,9 +807,13 @@ class BrowserStreamElement extends HTMLElement {
       const pending = this.#pending
       this.#pending = null
       try {
+        if (!pending) return
         const bitmap = await createImageBitmap(new Blob([pending.buffer], {type: 'image/jpeg'})).catch(() => null)
         if (!bitmap) return
         try {
+          if (pending.generation !== this.#socketGeneration) return
+          this.#displayViewport = {width: pending.width, height: pending.height}
+          this.#applyViewport(pending.width, pending.height)
           this.#canvas.getContext('2d').drawImage(bitmap, 0, 0, this.#canvas.width, this.#canvas.height)
           this.#canvas.classList.add('is-ready')
           this.#everDrew = true

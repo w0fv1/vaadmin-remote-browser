@@ -65,6 +65,7 @@ final class BrowserSession {
     private final AtomicBoolean capturePending = new AtomicBoolean();
     private final AtomicReference<BrowserInput> pendingMove = new AtomicReference<>();
     private final AtomicBoolean moveScheduled = new AtomicBoolean();
+    private final Object resourceLock = new Object();
     private final Object lifecycleLock = new Object();
     private final Map<String, BrowserTab> tabs = new LinkedHashMap<>();
     private final Map<String, BrowserTab> tabsByTarget = new LinkedHashMap<>();
@@ -229,17 +230,31 @@ final class BrowserSession {
         return tab.evaluate("navigator.clipboard.readText().catch(() => '')").asString("");
     }
 
-    public byte[] capture() {
+    BrowserResource loadResource(String url, String contentTypePrefix) {
+        synchronized (resourceLock) {
+            BrowserTab tab = submit(() -> tabs.get(activeTabId));
+            if (tab == null) { throw new IllegalStateException("浏览器没有活动标签页"); }
+            return tab.loadResource(url, contentTypePrefix);
+        }
+    }
+
+    JsonNode evaluate(String expression) {
+        BrowserTab tab = submit(() -> tabs.get(activeTabId));
+        if (tab == null) throw new IllegalStateException("浏览器没有活动标签页");
+        return tab.evaluate(expression);
+    }
+
+    public BrowserFrame capture() {
         if (!canCapture() || !capturePending.compareAndSet(false, true)) return null;
-        Future<byte[]> pending;
+        Future<BrowserFrame> pending;
         try {
             pending = captureLane.submit(() -> {
                 try {
                     BrowserTab tab = tabs.get(activeTabId);
                     if (tab == null) return null;
-                    tab.resize(viewportWidth, viewportHeight);
+                    BrowserFrame frame = tab.capture(quality, viewportWidth, viewportHeight);
                     refreshActiveState(tab);
-                    return tab.capture(quality);
+                    return frame;
                 } finally {
                     capturePending.set(false);
                 }
@@ -473,29 +488,33 @@ final class BrowserSession {
                 pendingClose = closeFuture;
             }
         }
-        boolean closed = false;
-        if (pendingClose != null) {
-            try {
-                pendingClose.get();
-                closed = true;
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                recordFailure("close", interrupted);
-            } catch (ExecutionException failure) {
-                Throwable cause = failure.getCause();
-                if (cause != null) recordFailure("close", cause);
+        boolean interrupted = Thread.interrupted();
+        try {
+            boolean closed = false;
+            if (pendingClose != null) {
+                while (!closed) {
+                    try {
+                        pendingClose.get();
+                        closed = true;
+                    } catch (InterruptedException failure) {
+                        interrupted = true;
+                    } catch (ExecutionException failure) {
+                        Throwable cause = failure.getCause();
+                        if (cause != null) recordFailure("close", cause);
+                        break;
+                    }
+                }
             }
-        }
-        if (!closed) {
-            try {
-                browser.close();
-            } catch (RuntimeException failure) {
-                recordFailure("close", failure);
+            if (!closed) {
+                try { browser.close(); }
+                catch (RuntimeException failure) { recordFailure("close", failure); }
             }
+            captureLane.shutdownNow();
+            navigationLane.shutdownNow();
+            profileLease.close();
+        } finally {
+            if (interrupted) Thread.currentThread().interrupt();
         }
-        captureLane.shutdownNow();
-        navigationLane.shutdownNow();
-        profileLease.close();
     }
 
     private void scheduleMove() {

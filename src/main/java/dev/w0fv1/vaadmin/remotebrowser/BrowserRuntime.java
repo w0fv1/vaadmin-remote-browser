@@ -33,8 +33,12 @@ final class BrowserRuntime {
     }
 
     ChromeBrowser launch(Path profileDirectory, BrowserEnvironmentProfile environment) {
+        return launch(profileDirectory, environment, BrowserProxyMode.SYSTEM);
+    }
+
+    ChromeBrowser launch(Path profileDirectory, BrowserEnvironmentProfile environment, BrowserProxyMode proxyMode) {
         ChromeProcess process = ChromeProcess.start(
-                executable(), arguments(profileDirectory, environment), profileDirectory, LAUNCH_TIMEOUT);
+                executable(), arguments(profileDirectory, environment, proxyMode), profileDirectory, LAUNCH_TIMEOUT);
         CdpConnection connection = null;
         try {
             connection = CdpConnection.open(process.browserEndpoint(), mapper);
@@ -54,6 +58,10 @@ final class BrowserRuntime {
     }
 
     List<String> arguments(Path profileDirectory, BrowserEnvironmentProfile environment) {
+        return arguments(profileDirectory, environment, BrowserProxyMode.SYSTEM);
+    }
+
+    List<String> arguments(Path profileDirectory, BrowserEnvironmentProfile environment, BrowserProxyMode proxyMode) {
         List<String> arguments = new ArrayList<>(List.of(
                 "--user-data-dir=" + profileDirectory,
                 "--remote-debugging-port=0",
@@ -67,6 +75,7 @@ final class BrowserRuntime {
                 "--window-size=" + BrowserSession.DEFAULT_VIEWPORT_WIDTH
                         + "," + BrowserSession.DEFAULT_VIEWPORT_HEIGHT));
         arguments.addAll(HOSTED_FLAGS);
+        if (proxyMode == BrowserProxyMode.DIRECT) arguments.add("--no-proxy-server");
         if (properties.mode().headless()) arguments.add("--headless=new");
         if (!properties.sandbox()) arguments.add("--no-sandbox");
         if (properties.mediaPolicy().mutesAudio()) arguments.add("--mute-audio");

@@ -16,6 +16,10 @@ public final class BrowserStreamComponent extends Component {
         getElement().setProperty("streamPath", streamPath);
     }
 
+    public void setOnlyPage(boolean onlyPage) {
+        getElement().setProperty("onlyPage", onlyPage);
+    }
+
     public void setSessionId(String sessionId) {
         getElement().setProperty("sessionId", sessionId);
     }

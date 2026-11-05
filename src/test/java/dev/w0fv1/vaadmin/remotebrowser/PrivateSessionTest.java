@@ -48,7 +48,7 @@ final class PrivateSessionTest {
     void privateSessionStartsCleanAndLeavesNothingBehind() throws Exception {
         BrowserSessionManager manager = manager();
         try {
-            RemoteBrowserSession first = manager.openPrivate(BrowserProfileId.DEFAULT, baseUrl);
+            RemoteBrowserSession first = manager.openPrivate(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT);
             try {
                 BrowserSession session = first.session();
                 session.resizeViewport(1000, 600);
@@ -56,7 +56,9 @@ final class PrivateSessionTest {
                 click(session, 500, 300);
                 awaitTitle(session, "click:500x300:1000x600");
             } finally {
-                first.close();
+                Thread.currentThread().interrupt();
+                try { first.close(); }
+                finally { assertThat(Thread.interrupted()).isTrue(); }
             }
 
             await().atMost(Duration.ofSeconds(20)).untilAsserted(() ->

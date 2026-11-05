@@ -125,13 +125,22 @@ final class BrowserTab {
         session.call("Page.navigateToHistoryEntry", parameters);
     }
 
+    BrowserResource loadResource(String url, String contentTypePrefix) {
+        return new BrowserResourceLoader(session, mapper).load(url, contentTypePrefix);
+    }
+
     JsonNode evaluate(String expression) {
         ObjectNode parameters = mapper.createObjectNode();
         parameters.put("expression", expression);
         parameters.put("returnByValue", true);
         parameters.put("awaitPromise", true);
         parameters.put("userGesture", true);
-        return session.call("Runtime.evaluate", parameters).path("result").path("value");
+        JsonNode response = session.call("Runtime.evaluate", parameters);
+        if (response.has("exceptionDetails")) {
+            throw new IllegalStateException(response.path("exceptionDetails").path("exception")
+                    .path("description").asString("浏览器脚本执行失败"));
+        }
+        return response.path("result").path("value");
     }
 
     private void trackCursor() {
@@ -236,17 +245,18 @@ final class BrowserTab {
         return viewport.clientHeight();
     }
 
-    void resize(int width, int height) {
+    synchronized void resize(int width, int height) {
         viewport.resize(width, height);
     }
 
-    byte[] capture(int quality) {
+    synchronized BrowserFrame capture(int quality, int width, int height) {
         ObjectNode parameters = mapper.createObjectNode();
+        viewport.resize(width, height);
         parameters.put("format", "jpeg");
         parameters.put("quality", quality);
         parameters.put("fromSurface", true);
         JsonNode result = session.call("Page.captureScreenshot", parameters);
-        return Base64.getDecoder().decode(result.path("data").asString(""));
+        return new BrowserFrame(Base64.getDecoder().decode(result.path("data").asString("")), viewport.clientWidth(), viewport.clientHeight());
     }
 
     void move(double x, double y, BrowserInput input) {
