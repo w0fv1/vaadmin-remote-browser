@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--platform", required=True, choices=["win64", "linux64"])
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--engine", default="podman")
+parser.add_argument("--debian-mirror", default="https://deb.debian.org")
 args = parser.parse_args()
 root = Path(__file__).resolve().parent
 lock = json.loads((root / "browser-lock.json").read_text())
@@ -38,6 +39,7 @@ with tempfile.TemporaryDirectory(dir=args.output) as staging:
         engine = args.engine.split()
         image = "vaadmin-browser-runtime:" + lock["version"]
         subprocess.run(engine + ["build", "--build-arg", "BASE=" + lock["linuxBase"],
+                                 "--build-arg", "DEBIAN_MIRROR=" + args.debian_mirror,
                                  "-t", image, "-f", str(root / "Containerfile"), str(root)], check=True)
         container = subprocess.check_output(engine + ["create", image], text=True).strip()
         try:

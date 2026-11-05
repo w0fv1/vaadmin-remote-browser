@@ -8,7 +8,7 @@
 
 运行时不下载，也不安装系统软件。首次使用校验摘要并解包至 `~/.vaadmin-remote-browser/runtime/<sha256>`，同一内容后续启动直接复用；不同内容使用独立目录。文件锁与原子移动保护并发解包。实现与测试见 [BundledBrowser](../src/main/java/dev/w0fv1/vaadmin/remotebrowser/BundledBrowser.java)、[BundledBrowserTest](../src/test/java/dev/w0fv1/vaadmin/remotebrowser/BundledBrowserTest.java)。
 
-显式配置 `browser.remote.executable` 可使用宿主提供的可执行文件，Edge 通道使用本地查找。Linux 包携带动态库与字体，不要求在生产机安装 Chromium；宿主仍需满足上述 Linux 基线及浏览器沙箱运行条件。
+显式配置 `browser.remote.executable` 可使用宿主提供的可执行文件，Edge 通道使用本地查找。Linux 包携带动态库与 Noto 多语言字体，不要求在生产机安装 Chromium；宿主仍需满足上述 Linux 基线及浏览器沙箱运行条件。
 
 ## Spring Boot Starter
 
@@ -47,7 +47,7 @@ WebSocket 默认只接受同源连接；需要跨源时显式配置 `browser.rem
 控制面只用 DevTools 协议，headed 模式的窗口操作走 `Browser` 域，因此在无图形界面的 Linux 上以 `headless` 运行即可，不需要 X11。部署时只需要满足：
 
 - 发布目标平台对应的浏览器运行包，或通过 `browser.remote.executable` 显式指定可执行文件
-- 随包运行时包含动态库与中英文字体；使用外部可执行文件时由宿主准备依赖
+- 随包运行时包含动态库、Liberation 与 Noto 多语言字体；使用外部可执行文件时由宿主准备依赖
 - 以 root 或容器内运行时 Chrome 会拒绝启动，此时显式设置 `browser.remote.sandbox=false`（等价 `--no-sandbox`，会削弱进程隔离，只在这种环境用）
 - 进程目录可写：`browser.remote.profile-root` 需要有足够空间放 Chrome 的用户数据与隐私窗口的一次性目录
 - `gradlew` 以 `100755` 入库；权限若在解压、复制或跨平台中转时丢失，用 `chmod +x gradlew` 恢复，否则第一条命令就是 `Permission denied`
@@ -120,3 +120,9 @@ java -cp 'lib/*' dev.w0fv1.vaadmin.remotebrowser.BrowserRuntimeProbe
 ```
 
 探针保留正常沙箱设置，关闭会话并清理私有目录，不下载或安装系统软件。应在目标机器切流前运行，验证目标平台及运行依赖。
+
+字体覆盖回归见 [BundledArabicFontTest](../src/test/java/dev/w0fv1/vaadmin/remotebrowser/BundledArabicFontTest.java)，通过 `BROWSER_FONT_RUNTIME` 指向待验证的 Linux `runtime.zip`，检查实际归档中的阿拉伯文字形覆盖。
+
+Linux 运行包的 `licenses/` 保存依赖包版权文件及实际包版本清单，随二进制一同分发。
+
+构建网络需要镜像时，可向 `runtime/prepare.py` 传入 `--debian-mirror <镜像根地址>`；默认值见该脚本，保留 TLS 与 Debian 软件包签名校验，仅影响构建阶段。
