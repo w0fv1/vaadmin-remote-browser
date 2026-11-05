@@ -1,0 +1,14 @@
+{
+  "version": "156.0.8078.80",
+  "linuxBase": "docker.io/library/debian@sha256:a3bba7dc7dbcc1f37c2856c51fc9a7fac96608f50cb87b1b4e4d8b8c85ae988e",
+  "platforms": {
+    "linux64": {
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.80/linux64/chrome-linux64.zip",
+      "sha256": "b711c720f774be355197f32edf37e0651418ba036d92446ee2da19ac017540a7"
+    },
+    "win64": {
+      "url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.80/win64/chrome-win64.zip",
+      "sha256": "16edb57d6107bf1c48a7c149b8d78b155fe614410093796dd72441fd6640540f"
+    }
+  }
+}

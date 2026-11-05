@@ -8,7 +8,7 @@
 
 ## 快速开始
 
-使用 JDK 25 构建和运行示例，准备 Chrome / Chromium / Edge 可执行文件。依赖版本以 [gradle.properties](gradle.properties) 为准。
+使用 JDK 25 构建和运行示例，构建会下载并校验固定版本的 Chrome for Testing。依赖版本以 [gradle.properties](gradle.properties) 为准。
 
 ```sh
 git clone https://github.com/w0fv1/vaadmin-remote-browser.git
@@ -49,7 +49,7 @@ byte[] bytes = image.content();
 implementation(project(":vaadmin-remote-browser"))
 ```
 
-自动配置与前端资源随 JAR 提供。浏览器二进制由宿主提供，具体见运行文档。
+自动配置与前端资源随 JAR 提供。默认将固定版本浏览器打入 JAR，首次使用时校验解包到用户缓存；后续启动复用缓存，不联网下载。也支持显式指定外部浏览器，具体见运行文档。
 
 ## 文档
 

@@ -54,7 +54,8 @@ final class BrowserRuntime {
 
     Path executable() {
         if (properties.executable() != null) return properties.executable();
-        return properties.channel().executable();
+        if (properties.channel() == BrowserChannel.MSEDGE) return properties.channel().executable();
+        return BundledBrowser.executable();
     }
 
     List<String> arguments(Path profileDirectory, BrowserEnvironmentProfile environment) {

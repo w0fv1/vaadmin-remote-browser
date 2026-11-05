@@ -42,7 +42,13 @@ final class ChromeProcess implements AutoCloseable {
         command.addAll(arguments);
         Process process;
         try {
-            process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            ProcessBuilder builder = new ProcessBuilder(command).redirectErrorStream(true);
+            Path libraries = executable.getParent().resolve("lib");
+            if (Files.isDirectory(libraries)) {
+                builder.environment().put("LD_LIBRARY_PATH", libraries.toString());
+                builder.environment().put("FONTCONFIG_FILE", executable.getParent().resolve("fonts.conf").toString());
+            }
+            process = builder.start();
         } catch (IOException failure) {
             throw new IllegalStateException("无法启动浏览器: " + executable, failure);
         }
