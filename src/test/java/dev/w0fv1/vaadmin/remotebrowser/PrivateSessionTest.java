@@ -48,7 +48,7 @@ final class PrivateSessionTest {
     void privateSessionStartsCleanAndLeavesNothingBehind() throws Exception {
         BrowserSessionManager manager = manager();
         try {
-            RemoteBrowserSession first = manager.openPrivate(BrowserProfileId.DEFAULT, baseUrl);
+            RemoteBrowserSession first = manager.openPrivate(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT);
             try {
                 BrowserSession session = first.session();
                 session.resizeViewport(1000, 600);

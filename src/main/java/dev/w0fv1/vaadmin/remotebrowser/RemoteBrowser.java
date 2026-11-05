@@ -11,7 +11,11 @@ public interface RemoteBrowser {
 
     RemoteBrowserSession open(BrowserProfileId profileId, String url);
 
-    RemoteBrowserSession openPrivate(BrowserProfileId templateProfile, String url);
+    default RemoteBrowserSession openPrivate(BrowserProfileId templateProfile, String url) {
+        return openPrivate(templateProfile, url, BrowserProxyMode.SYSTEM);
+    }
+
+    RemoteBrowserSession openPrivate(BrowserProfileId templateProfile, String url, BrowserProxyMode proxyMode);
 
     boolean isOpen(BrowserProfileId profileId);
 

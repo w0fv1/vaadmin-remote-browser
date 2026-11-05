@@ -92,12 +92,13 @@ final class BrowserSessionManager implements RemoteBrowser {
     }
 
     @Override
-    public synchronized RemoteBrowserSession openPrivate(BrowserProfileId templateProfile, String url) {
+    public synchronized RemoteBrowserSession openPrivate(BrowserProfileId templateProfile, String url, BrowserProxyMode proxyMode) {
+        java.util.Objects.requireNonNull(proxyMode);
         BrowserEnvironmentProfile template = environments.read(templateProfile);
         BrowserProfileLease lease = profiles.acquirePrivate(template);
         BrowserSession session;
         try {
-            session = createSession(lease, url);
+            session = createSession(lease, url, proxyMode);
         } catch (RuntimeException failure) {
             lease.close();
             throw failure;
@@ -112,14 +113,14 @@ final class BrowserSessionManager implements RemoteBrowser {
     }
 
     private BrowserSession createSession(String profileId, String url) {
-        return createSession(profiles.acquire(profileId), url);
+        return createSession(profiles.acquire(profileId), url, BrowserProxyMode.SYSTEM);
     }
 
-    private BrowserSession createSession(BrowserProfileLease lease, String url) {
+    private BrowserSession createSession(BrowserProfileLease lease, String url, BrowserProxyMode proxyMode) {
         ChromeBrowser browser = null;
         BrowserSession session = null;
         try {
-            browser = runtime.launch(lease.directory(), lease.environment());
+            browser = runtime.launch(lease.directory(), lease.environment(), proxyMode);
             session = new BrowserSession(
                     UUID.randomUUID().toString(),
                     browser,

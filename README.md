@@ -44,6 +44,7 @@ try (RemoteBrowserSession session = remoteBrowser.open(BrowserProfileId.DEFAULT,
 | --- | --- |
 | [`RemoteBrowser`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/RemoteBrowser.java) | 门面：配置列表、画像读写、开启会话、查询状态、流地址 |
 | [`RemoteBrowserSession`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/RemoteBrowserSession.java) | 会话句柄：`sessionId()`、`profileId()`、`environmentMode()`、`close()` |
+| [`BrowserProxyMode`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserProxyMode.java) | 私有会话的系统代理或直连策略，通过 `openPrivate` 指定 |
 | [`RemoteBrowserViewer`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/RemoteBrowserViewer.java) | 开箱即用的 Vaadin 组件，内含 `BrowserStreamComponent` |
 | [`BrowserStreamComponent`](src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserStreamComponent.java) | 只负责画面与输入的元素，供自定义布局使用 |
 
