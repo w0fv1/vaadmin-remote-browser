@@ -1,4 +1,8 @@
 ARG BASE
 FROM ${BASE}
-RUN apt-get update && apt-get install -y --no-install-recommends libnss3 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 libxrandr2 libgbm1 libasound2 libgtk-3-0 libdrm2 fonts-liberation fonts-noto-cjk && rm -rf /var/lib/apt/lists/*
-RUN mkdir -p /runtime/lib /runtime/fonts && cp -L /usr/lib/x86_64-linux-gnu/*.so /usr/lib/x86_64-linux-gnu/*.so.* /runtime/lib/ && rm -f /runtime/lib/libc.so* /runtime/lib/ld-linux* /runtime/lib/libpthread.so* /runtime/lib/libdl.so* /runtime/lib/librt.so* /runtime/lib/libm.so* /runtime/lib/libresolv.so* && cp -r /usr/share/fonts/truetype/liberation /usr/share/fonts/opentype/noto /runtime/fonts/
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+ARG DEBIAN_MIRROR
+RUN sed -i "s|http://deb.debian.org|${DEBIAN_MIRROR}|g" /etc/apt/sources.list.d/debian.sources
+RUN apt-get update && apt-get install -y --no-install-recommends libnss3 libatk-bridge2.0-0 libx11-xcb1 libxcomposite1 libxcursor1 libxdamage1 libxi6 libxtst6 libxrandr2 libgbm1 libasound2 libgtk-3-0 libdrm2 fonts-liberation fonts-noto-core fonts-noto-cjk && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /runtime/lib /runtime/fonts && cp -L /usr/lib/x86_64-linux-gnu/*.so /usr/lib/x86_64-linux-gnu/*.so.* /runtime/lib/ && rm -f /runtime/lib/libc.so* /runtime/lib/ld-linux* /runtime/lib/libpthread.so* /runtime/lib/libdl.so* /runtime/lib/librt.so* /runtime/lib/libm.so* /runtime/lib/libresolv.so* && cp -r /usr/share/fonts/truetype /usr/share/fonts/opentype /runtime/fonts/
+RUN mkdir -p /runtime/licenses && find /usr/share/doc -name copyright -type f -exec cp --parents {} /runtime/licenses/ \; && dpkg-query -W > /runtime/licenses/packages.txt
