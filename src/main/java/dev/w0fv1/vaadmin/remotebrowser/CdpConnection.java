@@ -126,10 +126,11 @@ final class CdpConnection implements AutoCloseable {
         handlers.computeIfAbsent(method, key -> new CopyOnWriteArrayList<>()).add(handler);
     }
 
-    void on(String sessionId, String method, Consumer<JsonNode> handler) {
-        sessionHandlers.computeIfAbsent(sessionId, key -> new ConcurrentHashMap<>())
-                .computeIfAbsent(method, key -> new CopyOnWriteArrayList<>())
-                .add(handler);
+    Runnable on(String sessionId, String method, Consumer<JsonNode> handler) {
+        var listeners = sessionHandlers.computeIfAbsent(sessionId, key -> new ConcurrentHashMap<>())
+                .computeIfAbsent(method, key -> new CopyOnWriteArrayList<>());
+        listeners.add(handler);
+        return () -> listeners.remove(handler);
     }
 
     @Override

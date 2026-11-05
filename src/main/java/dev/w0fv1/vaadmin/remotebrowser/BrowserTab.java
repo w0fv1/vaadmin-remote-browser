@@ -125,6 +125,10 @@ final class BrowserTab {
         session.call("Page.navigateToHistoryEntry", parameters);
     }
 
+    BrowserResource loadResource(String url, String contentTypePrefix) {
+        return new BrowserResourceLoader(session, mapper).load(url, contentTypePrefix);
+    }
+
     JsonNode evaluate(String expression) {
         ObjectNode parameters = mapper.createObjectNode();
         parameters.put("expression", expression);

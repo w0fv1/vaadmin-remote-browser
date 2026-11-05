@@ -14,7 +14,7 @@ record CdpSession(CdpConnection connection, String sessionId) {
         connection.send(sessionId, method, parameters);
     }
 
-    void on(String method, Consumer<JsonNode> handler) {
-        connection.on(sessionId, method, handler);
+    Runnable on(String method, Consumer<JsonNode> handler) {
+        return connection.on(sessionId, method, handler);
     }
 }

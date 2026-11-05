@@ -17,6 +17,12 @@ public interface RemoteBrowser {
 
     RemoteBrowserSession openPrivate(BrowserProfileId templateProfile, String url, BrowserProxyMode proxyMode);
 
+    default BrowserResource loadResource(String url, String contentTypePrefix, BrowserProxyMode proxyMode) {
+        try (var session = openPrivate(BrowserProfileId.DEFAULT, "about:blank", proxyMode)) {
+            return session.loadResource(url, contentTypePrefix);
+        }
+    }
+
     boolean isOpen(BrowserProfileId profileId);
 
     String streamPath();

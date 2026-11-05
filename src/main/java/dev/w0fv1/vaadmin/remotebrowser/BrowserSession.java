@@ -65,6 +65,7 @@ final class BrowserSession {
     private final AtomicBoolean capturePending = new AtomicBoolean();
     private final AtomicReference<BrowserInput> pendingMove = new AtomicReference<>();
     private final AtomicBoolean moveScheduled = new AtomicBoolean();
+    private final Object resourceLock = new Object();
     private final Object lifecycleLock = new Object();
     private final Map<String, BrowserTab> tabs = new LinkedHashMap<>();
     private final Map<String, BrowserTab> tabsByTarget = new LinkedHashMap<>();
@@ -227,6 +228,14 @@ final class BrowserSession {
         BrowserTab tab = tabs.get(activeTabId);
         if (tab == null) return "";
         return tab.evaluate("navigator.clipboard.readText().catch(() => '')").asString("");
+    }
+
+    BrowserResource loadResource(String url, String contentTypePrefix) {
+        synchronized (resourceLock) {
+            BrowserTab tab = submit(() -> tabs.get(activeTabId));
+            if (tab == null) { throw new IllegalStateException("浏览器没有活动标签页"); }
+            return tab.loadResource(url, contentTypePrefix);
+        }
     }
 
     JsonNode evaluate(String expression) {
