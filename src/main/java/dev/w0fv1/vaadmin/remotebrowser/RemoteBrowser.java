@@ -11,6 +11,13 @@ public interface RemoteBrowser {
 
     RemoteBrowserSession open(BrowserProfileId profileId, String url);
 
+    /** Opens a persistent profile with an explicit proxy policy. */
+    default RemoteBrowserSession open(BrowserProfileId profileId, String url, BrowserProxyMode proxyMode) {
+        if (proxyMode != BrowserProxyMode.SYSTEM) throw new UnsupportedOperationException("此实现不支持持久会话代理配置");
+        return open(profileId, url);
+    }
+
+
     default RemoteBrowserSession openPrivate(BrowserProfileId templateProfile, String url) {
         return openPrivate(templateProfile, url, BrowserProxyMode.SYSTEM);
     }
