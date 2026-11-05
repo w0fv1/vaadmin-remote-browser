@@ -24,6 +24,11 @@ public final class RemoteBrowserSession implements AutoCloseable {
         return session.browserInfo().environmentMode();
     }
 
+    public tools.jackson.databind.JsonNode evaluate(String expression) {
+        if (closed.get()) throw new IllegalStateException("浏览器会话已关闭");
+        return session.evaluate(java.util.Objects.requireNonNull(expression));
+    }
+
     BrowserSession session() {
         return session;
     }

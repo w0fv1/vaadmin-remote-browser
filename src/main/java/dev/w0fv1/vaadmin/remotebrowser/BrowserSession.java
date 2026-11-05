@@ -229,6 +229,12 @@ final class BrowserSession {
         return tab.evaluate("navigator.clipboard.readText().catch(() => '')").asString("");
     }
 
+    JsonNode evaluate(String expression) {
+        BrowserTab tab = submit(() -> tabs.get(activeTabId));
+        if (tab == null) throw new IllegalStateException("浏览器没有活动标签页");
+        return tab.evaluate(expression);
+    }
+
     public byte[] capture() {
         if (!canCapture() || !capturePending.compareAndSet(false, true)) return null;
         Future<byte[]> pending;

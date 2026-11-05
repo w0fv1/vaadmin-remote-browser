@@ -23,6 +23,9 @@ final class RemoteBrowserSessionTest {
         try {
             RemoteBrowserSession first = manager.openDefault("about:blank");
             RemoteBrowserSession second = manager.openDefault("about:blank");
+            assertThat(first.evaluate("({answer: 6 * 7})").path("answer").asInt()).isEqualTo(42);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> first.evaluate("throw new Error('fixture failure')"))
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("fixture failure");
 
             assertThat(second.session().id()).isEqualTo(first.session().id());
             assertThat(first.session().browserInfo().contextOpen()).isTrue();

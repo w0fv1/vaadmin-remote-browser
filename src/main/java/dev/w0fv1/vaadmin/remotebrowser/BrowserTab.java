@@ -131,7 +131,12 @@ final class BrowserTab {
         parameters.put("returnByValue", true);
         parameters.put("awaitPromise", true);
         parameters.put("userGesture", true);
-        return session.call("Runtime.evaluate", parameters).path("result").path("value");
+        JsonNode response = session.call("Runtime.evaluate", parameters);
+        if (response.has("exceptionDetails")) {
+            throw new IllegalStateException(response.path("exceptionDetails").path("exception")
+                    .path("description").asString("浏览器脚本执行失败"));
+        }
+        return response.path("result").path("value");
     }
 
     private void trackCursor() {
