@@ -1,14 +1,47 @@
 {
   "version": "156.0.8078.80",
-  "linuxBase": "docker.io/library/debian@sha256:a3bba7dc7dbcc1f37c2856c51fc9a7fac96608f50cb87b1b4e4d8b8c85ae988e",
+  "releaseTag": "runtime-156.0.8078.80",
   "platforms": {
     "linux64": {
-      "url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.80/linux64/chrome-linux64.zip",
-      "sha256": "b711c720f774be355197f32edf37e0651418ba036d92446ee2da19ac017540a7"
+      "sourceUrl": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.80/linux64/chrome-linux64.zip",
+      "sourceSha256": "b711c720f774be355197f32edf37e0651418ba036d92446ee2da19ac017540a7",
+      "runtimeUrl": "https://github.com/w0fv1/vaadmin-remote-browser/releases/download/runtime-156.0.8078.80/runtime-linux64.zip",
+      "runtimeSha256": "356c0f7c95bfb44c42a168bbdcce2dd32c5ef4d9164c211d9f8f1f3c001443a0"
     },
     "win64": {
-      "url": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.80/win64/chrome-win64.zip",
-      "sha256": "16edb57d6107bf1c48a7c149b8d78b155fe614410093796dd72441fd6640540f"
+      "sourceUrl": "https://storage.googleapis.com/chrome-for-testing-public/156.0.8078.80/win64/chrome-win64.zip",
+      "sourceSha256": "16edb57d6107bf1c48a7c149b8d78b155fe614410093796dd72441fd6640540f",
+      "runtimeUrl": "https://github.com/w0fv1/vaadmin-remote-browser/releases/download/runtime-156.0.8078.80/runtime-win64.zip",
+      "runtimeSha256": "911a1d3f0b7f40ba1041d089dcf92acfcb5c8976cddc195651febacdd60e1873"
     }
+  },
+  "build": {
+    "keepLocales": [
+      "en-US",
+      "zh-CN",
+      "zh-TW"
+    ],
+    "keepFonts": [
+      "NotoSansCJK-Regular.ttc",
+      "NotoSansCJK-Bold.ttc",
+      "NotoSansArabic-Regular.ttf"
+    ],
+    "debianPackages": [
+      "libnss3",
+      "libatk-bridge2.0-0",
+      "libx11-xcb1",
+      "libxcomposite1",
+      "libxcursor1",
+      "libxdamage1",
+      "libxi6",
+      "libxtst6",
+      "libxrandr2",
+      "libgbm1",
+      "libasound2",
+      "libgtk-3-0",
+      "libdrm2",
+      "fonts-noto-cjk",
+      "fonts-noto-core"
+    ]
   }
 }

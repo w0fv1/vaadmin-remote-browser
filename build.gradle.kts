@@ -95,25 +95,23 @@ val browserPlatform = providers.gradleProperty("browserPlatform").orElse(
     if (System.getProperty("os.name").startsWith("Windows")) "win64" else "linux64")
 val browserRuntimeDirectory = providers.gradleProperty("browserRuntimeDirectory")
     .map { file(it) }.orElse(layout.buildDirectory.dir("browser-runtime").map { it.asFile })
-val prepareBrowserRuntime by tasks.registering(Exec::class) {
-    inputs.dir("runtime")
+val fetchBrowserRuntime by tasks.registering(Exec::class) {
+    inputs.file("runtime/browser-lock.json")
     inputs.property("platform", browserPlatform)
     outputs.dir(browserRuntimeDirectory)
     enabled = !providers.gradleProperty("browserRuntimeDirectory").isPresent
     commandLine(providers.gradleProperty("pythonExecutable").getOrElse("python"),
-        "runtime/prepare.py", "--platform", browserPlatform.get(), "--output", browserRuntimeDirectory.get().absolutePath)
+        "runtime/fetch.py", "--platform", browserPlatform.get(), "--output", browserRuntimeDirectory.get().absolutePath)
 }
 tasks.processResources {
-    dependsOn(prepareBrowserRuntime)
-    from(browserRuntimeDirectory) {
-        include("runtime.zip", "runtime.properties")
+    from("runtime/browser-lock.json") {
         into("browser-runtime")
     }
-    val runtimePath = browserRuntimeDirectory.get()
-    val expectedPlatform = browserPlatform.get()
-    doFirst {
-        val metadata = Properties()
-        runtimePath.resolve("runtime.properties").inputStream().use(metadata::load)
-        require(metadata.getProperty("platform") == expectedPlatform) { "Browser runtime platform mismatch" }
+}
+tasks.processTestResources {
+    dependsOn(fetchBrowserRuntime)
+    from(browserRuntimeDirectory) {
+        include("runtime.zip")
+        into("browser-runtime")
     }
 }
