@@ -2,7 +2,7 @@
 
 [文档首页](../README.md) · [API](api.md)
 
-默认使用完整 Chrome for Testing，默认模式为 headless，保留原生的 `Chrome/` UA、`window.chrome` 与媒体能力。版本、平台、源包与运行时包的下载地址和 SHA-256 统一见 [browser-lock.json](../runtime/browser-lock.json)。支持 Windows x64 与 Debian 12 基线的 Linux x64。
+默认使用完整 Chrome for Testing，默认模式为 headless，保留原生的 `Chrome/` UA、`window.chrome` 与媒体能力；随包运行时在 headless 模式下把 UA 统一成常规 `Chrome/<major>.0.0.0`，不暴露 `HeadlessChrome`。版本、平台、源包与运行时包的下载地址和 SHA-256 统一见 [browser-lock.json](../runtime/browser-lock.json)。支持 Windows x64 与 Debian 12 基线的 Linux x64。
 
 运行时包不进入业务 JAR：构建时只打包 `browser-lock.json`，运行期按需下载运行时包并缓存。发布新版本运行时由 [prepare.py](../runtime/prepare.py) 产出（原包下载 + Debian 包解包 + `ldd` 闭包库 + CJK/阿拉伯字体 + locale 裁剪），上传到同名 GitHub Release，再把 `runtimeUrl` 与 `runtimeSha256` 写回清单；本地测试资源由 [fetch.py](../runtime/fetch.py) 拉取。
 

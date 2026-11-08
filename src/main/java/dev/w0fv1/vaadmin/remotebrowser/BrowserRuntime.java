@@ -77,7 +77,11 @@ final class BrowserRuntime {
                         + "," + BrowserSession.DEFAULT_VIEWPORT_HEIGHT));
         arguments.addAll(HOSTED_FLAGS);
         if (proxyMode == BrowserProxyMode.DIRECT) arguments.add("--no-proxy-server");
-        if (properties.mode().headless()) arguments.add("--headless=new");
+        if (properties.mode().headless()) {
+            arguments.add("--headless=new");
+            String userAgent = headlessUserAgent();
+            if (userAgent != null) arguments.add("--user-agent=" + userAgent);
+        }
         if (!properties.sandbox()) arguments.add("--no-sandbox");
         if (properties.mediaPolicy().mutesAudio()) arguments.add("--mute-audio");
         if (properties.mediaPolicy().blocksPlayback()) {
@@ -95,6 +99,22 @@ final class BrowserRuntime {
         String language = locale.getLanguage();
         if (tag.equalsIgnoreCase(language)) return language;
         return tag + "," + language;
+    }
+
+    private String headlessUserAgent() {
+        if (!usesBundledBrowser()) return null;
+        String version = BundledBrowser.version();
+        if (version == null || version.isBlank()) return null;
+        String platform = System.getProperty("os.name").startsWith("Windows")
+                ? "Windows NT 10.0; Win64; x64"
+                : "X11; Linux x86_64";
+        String major = version.split("\\.")[0];
+        return "Mozilla/5.0 (" + platform + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
+                + major + ".0.0.0 Safari/537.36";
+    }
+
+    private boolean usesBundledBrowser() {
+        return properties.executable() == null && properties.channel() != BrowserChannel.MSEDGE;
     }
 
     private void grantPermissions(ChromeBrowser browser, BrowserEnvironmentProfile environment) {

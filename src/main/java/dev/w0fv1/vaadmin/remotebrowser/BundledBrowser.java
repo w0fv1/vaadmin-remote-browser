@@ -17,9 +17,8 @@ final class BundledBrowser {
     }
 
     static synchronized Path executable() {
-        try (InputStream lockStream = BundledBrowser.class.getResourceAsStream(LOCK_RESOURCE)) {
-            if (lockStream == null) throw new IllegalStateException("发布包缺少浏览器运行时清单");
-            JsonNode lock = new ObjectMapper().readTree(lockStream);
+        try {
+            JsonNode lock = lock();
             String platform = platform();
             JsonNode entry = lock.path("platforms").path(platform);
             if (entry.isMissingNode()) throw new IllegalStateException("浏览器运行时清单缺少平台: " + platform);
@@ -33,6 +32,23 @@ final class BundledBrowser {
             throw failure;
         } catch (Exception failure) {
             throw new IllegalStateException("无法准备随包浏览器", failure);
+        }
+    }
+
+    static String version() {
+        try {
+            return lock().path("version").asString("");
+        } catch (Exception failure) {
+            return "";
+        }
+    }
+
+    private static JsonNode lock() {
+        try (InputStream lockStream = BundledBrowser.class.getResourceAsStream(LOCK_RESOURCE)) {
+            if (lockStream == null) throw new IllegalStateException("发布包缺少浏览器运行时清单");
+            return new ObjectMapper().readTree(lockStream);
+        } catch (IOException failure) {
+            throw new IllegalStateException("无法读取浏览器运行时清单", failure);
         }
     }
 

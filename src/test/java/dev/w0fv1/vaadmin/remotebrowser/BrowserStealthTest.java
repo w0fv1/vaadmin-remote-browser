@@ -87,7 +87,9 @@ final class BrowserStealthTest {
             }
             assertThat(page.evaluate("navigator.languages.length").asInt()).isPositive();
             assertThat(page.evaluate("navigator.plugins.length").asInt()).isPositive();
-            assertThat(page.evaluate("navigator.userAgent").asString()).contains("Chrome/");
+            assertThat(page.evaluate("navigator.userAgent").asString())
+                    .contains("Chrome/")
+                    .doesNotContain("HeadlessChrome");
         }
     }
 
