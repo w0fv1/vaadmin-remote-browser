@@ -302,6 +302,10 @@ final class BrowserSessionContractTest {
             assertThat(info.browserVersion()).startsWith("Chrome/");
             assertThat(info.contextOpen()).isTrue();
             assertThat(info.lastFailure()).isNull();
+            assertThat(session.evaluate(
+                    "Object.getOwnPropertyNames(window).filter(name => /vaadmin|w0fv1/i.test(name)).length")
+                    .asInt()).isZero();
+            assertThat(session.evaluate("navigator.userAgentData.brands.length").asInt()).isPositive();
 
             lease.close();
             assertThat(session.browserInfo().contextOpen()).isFalse();

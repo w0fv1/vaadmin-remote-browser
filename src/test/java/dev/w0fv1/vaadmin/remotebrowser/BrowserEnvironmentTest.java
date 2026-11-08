@@ -54,7 +54,7 @@ final class BrowserEnvironmentTest {
 
         BrowserRuntime runtime = new BrowserRuntime(properties, mapper);
         try (ChromeBrowser browser = runtime.launch(profileRoot.resolve("managed"), environment);
-             CdpTestPage page = CdpTestPage.open(browser, baseUrl + "/environment", environment)) {
+             CdpTestPage page = CdpTestPage.open(browser, baseUrl + "/environment", environment, runtime.userAgent())) {
             JsonNode surface = page.evaluate("""
                     (async () => {
                       const permission = await navigator.permissions.query({name: 'geolocation'});

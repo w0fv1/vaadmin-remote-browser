@@ -73,7 +73,7 @@ final class BrowserStealthTest {
         BrowserEnvironmentProfile environment = BrowserEnvironmentProfile.nativeProfile(BrowserProfileId.DEFAULT);
         try (ChromeBrowser browser = runtime.launch(
                 profileRoot.resolve("stealth-" + mode.name().toLowerCase()), environment);
-             CdpTestPage page = CdpTestPage.open(browser, baseUrl + "/stealth", environment)) {
+             CdpTestPage page = CdpTestPage.open(browser, baseUrl + "/stealth", environment, runtime.userAgent())) {
             assertThat(page.evaluate("navigator.webdriver").asBoolean()).isFalse();
             assertThat(page.evaluate("typeof window.chrome === 'object' && window.chrome !== null").asBoolean())
                     .isTrue();
@@ -90,6 +90,20 @@ final class BrowserStealthTest {
             assertThat(page.evaluate("navigator.userAgent").asString())
                     .contains("Chrome/")
                     .doesNotContain("HeadlessChrome");
+            assertThat(page.evaluate("navigator.userAgentData !== undefined").asBoolean()).isTrue();
+            assertThat(page.evaluate("navigator.userAgentData.brands.length").asInt()).isPositive();
+            assertThat(page.evaluate("""
+                    navigator.userAgentData.brands.map(brand => brand.brand).join(',')
+                    """).asString())
+                    .contains("Chromium")
+                    .doesNotContain("Headless");
+            assertThat(page.evaluate("navigator.userAgentData.platform").asString()).isNotBlank();
+            assertThat(page.evaluate("screen.width").asInt()).isGreaterThanOrEqualTo(1024);
+            assertThat(page.evaluate("screen.height").asInt()).isGreaterThanOrEqualTo(768);
+            JsonNode customGlobals = page.evaluate(
+                    "Object.getOwnPropertyNames(window).filter(name => /vaadmin|w0fv1/i.test(name))");
+            assertThat(customGlobals.isArray()).isTrue();
+            assertThat(customGlobals.isEmpty()).as(customGlobals.toString()).isTrue();
         }
     }
 
