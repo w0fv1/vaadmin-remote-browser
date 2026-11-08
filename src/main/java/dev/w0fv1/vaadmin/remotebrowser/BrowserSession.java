@@ -49,6 +49,7 @@ final class BrowserSession {
     private static final int MAX_INTERVAL_MILLIS = 2000;
     private static final int MAX_TEXT_LENGTH = 256;
     private static final long STATE_REFRESH_NANOS = 250_000_000L;
+    private static final long CURSOR_PROBE_NANOS = 50_000_000L;
     private static final Logger log = LoggerFactory.getLogger(BrowserSession.class);
 
     private final String id;
@@ -59,6 +60,7 @@ final class BrowserSession {
     private final BrowserChannel channel;
     private final BrowserMediaPolicy mediaPolicy;
     private final BrowserProfileLease profileLease;
+    private final BrowserUserAgent userAgent;
     private final ThreadPoolExecutor inputLane;
     private final ExecutorService captureLane;
     private final ExecutorService navigationLane;
@@ -89,6 +91,9 @@ final class BrowserSession {
     private volatile int bandwidthBytesPerSecond = DEFAULT_BANDWIDTH_BYTES_PER_SECOND;
     private volatile int latencyMillis = DEFAULT_LATENCY_MILLIS;
     private volatile String cursor = "auto";
+    private volatile double pointerX = -1;
+    private volatile double pointerY = -1;
+    private volatile long lastCursorProbeNanos;
 
     BrowserSession(
             String id,
@@ -97,7 +102,8 @@ final class BrowserSession {
             BrowserMode mode,
             BrowserChannel channel,
             BrowserMediaPolicy mediaPolicy,
-            BrowserProfileLease profileLease) {
+            BrowserProfileLease profileLease,
+            BrowserUserAgent userAgent) {
         this.id = id;
         this.profileId = profileLease.profileId();
         this.browser = browser;
@@ -106,6 +112,7 @@ final class BrowserSession {
         this.channel = channel;
         this.mediaPolicy = mediaPolicy;
         this.profileLease = profileLease;
+        this.userAgent = userAgent;
         this.inputLane = new ThreadPoolExecutor(
                 1,
                 1,
@@ -517,6 +524,15 @@ final class BrowserSession {
         }
     }
 
+    private void probeCursor(BrowserTab tab, double x, double y) {
+        pointerX = x;
+        pointerY = y;
+        long now = System.nanoTime();
+        if (now - lastCursorProbeNanos < CURSOR_PROBE_NANOS) return;
+        lastCursorProbeNanos = now;
+        cursor = tab.cursorAt(x, y);
+    }
+
     private void scheduleMove() {
         if (!moveScheduled.compareAndSet(false, true)) return;
         if (!enqueueInput(this::applyPendingMove)) {
@@ -531,6 +547,7 @@ final class BrowserSession {
             if (tab != null) {
                 try {
                     tab.move(latest.x(), latest.y(), latest);
+                    probeCursor(tab, latest.x(), latest.y());
                 } catch (RuntimeException failure) {
                     recordFailure("input", failure);
                 }
@@ -575,8 +592,9 @@ final class BrowserSession {
                 mapper,
                 mode,
                 environment.deviceScaleFactor(),
-                mediaPolicy);
-        tab.onCursor(value -> cursor = value);
+                mediaPolicy,
+                userAgent);
+
         tab.applyEnvironment(environment);
         tab.applyTargetInfo(session.call("Target.getTargetInfo", null).path("targetInfo"));
         tab.onLoad(() -> execute(() -> {

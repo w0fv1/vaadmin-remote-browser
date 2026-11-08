@@ -5,27 +5,13 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.Base64;
-import java.util.function.Consumer;
 
 final class BrowserTab {
-    static final String CURSOR_BINDING = "__vaadminCursor";
-    private static final String CURSOR_SCRIPT = """
+    private static final String CURSOR_PROBE = """
             (() => {
-                let last = '';
-                let lastAt = 0;
-                const report = event => {
-                    const now = performance.now();
-                    if (now - lastAt < 50) return;
-                    lastAt = now;
-                    const element = document.elementFromPoint(event.clientX, event.clientY);
-                    const cursor = element ? getComputedStyle(element).cursor : '';
-                    const value = cursor && cursor !== 'auto' ? cursor : 'auto';
-                    if (value === last) return;
-                    last = value;
-                    if (typeof window.__vaadminCursor === 'function') window.__vaadminCursor(value);
-                };
-                document.addEventListener('mousemove', report, true);
-                document.addEventListener('mousedown', report, true);
+                const element = document.elementFromPoint(%s, %s);
+                const cursor = element ? getComputedStyle(element).cursor : '';
+                return cursor && cursor !== 'auto' ? cursor : 'auto';
             })();
             """;
     private static final String BLOCK_MEDIA_SCRIPT = """
@@ -52,13 +38,14 @@ final class BrowserTab {
     private final CdpConnection connection;
     private final BrowserViewport viewport;
     private final ObjectMapper mapper;
+    private final BrowserUserAgent userAgent;
     private String title = "";
     private String url = "about:blank";
     private boolean loading;
     private String error = "";
     private boolean canGoBack;
     private boolean canGoForward;
-    private volatile Consumer<String> cursorHandler;
+
 
     BrowserTab(
             String id,
@@ -68,12 +55,14 @@ final class BrowserTab {
             ObjectMapper mapper,
             BrowserMode mode,
             double deviceScaleFactor,
-            BrowserMediaPolicy mediaPolicy) {
+            BrowserMediaPolicy mediaPolicy,
+            BrowserUserAgent userAgent) {
         this.id = id;
         this.targetId = targetId;
         this.session = session;
         this.connection = connection;
         this.mapper = mapper;
+        this.userAgent = userAgent;
         this.viewport = new BrowserViewport(mode, targetId, session, connection, mapper, deviceScaleFactor);
         session.call("Page.enable", null);
         session.call("Runtime.enable", null);
@@ -87,13 +76,11 @@ final class BrowserTab {
             parameters.put("source", BLOCK_MEDIA_SCRIPT);
             session.call("Page.addScriptToEvaluateOnNewDocument", parameters);
         }
+
         session.on("Page.javascriptDialogOpening", event -> dismissDialog());
-        trackCursor();
     }
 
-    void onCursor(Consumer<String> handler) {
-        cursorHandler = handler;
-    }
+
 
     void reload() {
         session.call("Page.reload", null);
@@ -143,18 +130,8 @@ final class BrowserTab {
         return response.path("result").path("value");
     }
 
-    private void trackCursor() {
-        ObjectNode binding = mapper.createObjectNode();
-        binding.put("name", CURSOR_BINDING);
-        session.call("Runtime.addBinding", binding);
-        ObjectNode script = mapper.createObjectNode();
-        script.put("source", CURSOR_SCRIPT);
-        session.call("Page.addScriptToEvaluateOnNewDocument", script);
-        session.on("Runtime.bindingCalled", event -> {
-            if (!CURSOR_BINDING.equals(event.path("name").asString(""))) return;
-            Consumer<String> handler = cursorHandler;
-            if (handler != null) handler.accept(event.path("payload").asString("auto"));
-        });
+    String cursorAt(double x, double y) {
+        return evaluate(CURSOR_PROBE.formatted(x, y)).asString("auto");
     }
 
     String id() {
@@ -182,7 +159,7 @@ final class BrowserTab {
     }
 
     void applyEnvironment(BrowserEnvironmentProfile environment) {
-        BrowserPageEnvironment.apply(session, mapper, environment);
+        BrowserPageEnvironment.apply(session, mapper, environment, userAgent);
     }
 
     void onLoad(Runnable handler) {

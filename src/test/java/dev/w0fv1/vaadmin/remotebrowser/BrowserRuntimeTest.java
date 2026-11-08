@@ -97,38 +97,35 @@ final class BrowserRuntimeTest {
     }
 
     @Test
-    void headlessBundledBrowserReportsRegularChromeUserAgent() {
-        List<String> arguments = runtime(BrowserMode.HEADLESS).arguments(
+    void headlessBundledBrowserOverridesUserAgentThroughCdpWithoutLaunchFlag() {
+        BrowserRuntime runtime = runtime(BrowserMode.HEADLESS);
+        List<String> arguments = runtime.arguments(
                 profileRoot.resolve("headless-agent"),
                 BrowserEnvironmentProfile.nativeProfile(BrowserProfileId.DEFAULT));
 
-        assertThat(arguments)
-                .filteredOn(argument -> argument.startsWith("--user-agent="))
-                .singleElement()
-                .asString()
+        assertThat(arguments).noneMatch(argument -> argument.startsWith("--user-agent="));
+        BrowserUserAgent userAgent = runtime.userAgent();
+        assertThat(userAgent).isNotNull();
+        assertThat(userAgent.userAgent())
                 .contains("Mozilla/5.0", "AppleWebKit/537.36",
                         "Chrome/" + BundledBrowser.version().split("\\.")[0])
                 .doesNotContain("HeadlessChrome");
+        assertThat(userAgent.metadata().path("brands").size()).isPositive();
+        assertThat(userAgent.metadata().path("fullVersionList").size()).isPositive();
+        assertThat(userAgent.metadata().path("platform").asString()).isNotBlank();
+        assertThat(userAgent.metadata().path("fullVersion").asString()).isEqualTo(BundledBrowser.version());
     }
 
     @Test
     void headedBundledBrowserKeepsNativeUserAgent() {
-        List<String> arguments = runtime(BrowserMode.HEADED).arguments(
-                profileRoot.resolve("headed-agent"),
-                BrowserEnvironmentProfile.nativeProfile(BrowserProfileId.DEFAULT));
-
-        assertThat(arguments).noneMatch(argument -> argument.startsWith("--user-agent="));
+        assertThat(runtime(BrowserMode.HEADED).userAgent()).isNull();
     }
 
     @Test
     void configuredExecutableKeepsNativeUserAgent() {
         BrowserRuntimeProperties properties = new BrowserRuntimeProperties(
                 BrowserMode.HEADLESS, BrowserChannel.MSEDGE, profileRoot, BrowserChannel.CHROME.executable());
-        List<String> arguments = new BrowserRuntime(properties, new ObjectMapper()).arguments(
-                profileRoot.resolve("external-agent"),
-                BrowserEnvironmentProfile.nativeProfile(BrowserProfileId.DEFAULT));
-
-        assertThat(arguments).noneMatch(argument -> argument.startsWith("--user-agent="));
+        assertThat(new BrowserRuntime(properties, new ObjectMapper()).userAgent()).isNull();
     }
 
     @Test

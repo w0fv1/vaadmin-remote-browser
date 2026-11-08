@@ -7,7 +7,14 @@ final class BrowserPageEnvironment {
     static void apply(
             CdpSession session,
             ObjectMapper mapper,
-            BrowserEnvironmentProfile environment) {
+            BrowserEnvironmentProfile environment,
+            BrowserUserAgent userAgent) {
+        if (userAgent != null) {
+            ObjectNode parameters = mapper.createObjectNode();
+            parameters.put("userAgent", userAgent.userAgent());
+            parameters.set("userAgentMetadata", userAgent.metadata());
+            session.call("Emulation.setUserAgentOverride", parameters);
+        }
         if (environment.mode() != BrowserEnvironmentMode.MANAGED) return;
         ObjectNode locale = mapper.createObjectNode();
         locale.put("locale", environment.locale().toLanguageTag());

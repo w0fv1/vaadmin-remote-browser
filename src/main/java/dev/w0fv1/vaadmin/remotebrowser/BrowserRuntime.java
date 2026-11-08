@@ -77,11 +77,7 @@ final class BrowserRuntime {
                         + "," + BrowserSession.DEFAULT_VIEWPORT_HEIGHT));
         arguments.addAll(HOSTED_FLAGS);
         if (proxyMode == BrowserProxyMode.DIRECT) arguments.add("--no-proxy-server");
-        if (properties.mode().headless()) {
-            arguments.add("--headless=new");
-            String userAgent = headlessUserAgent();
-            if (userAgent != null) arguments.add("--user-agent=" + userAgent);
-        }
+        if (properties.mode().headless()) arguments.add("--headless=new");
         if (!properties.sandbox()) arguments.add("--no-sandbox");
         if (properties.mediaPolicy().mutesAudio()) arguments.add("--mute-audio");
         if (properties.mediaPolicy().blocksPlayback()) {
@@ -111,6 +107,48 @@ final class BrowserRuntime {
         String major = version.split("\\.")[0];
         return "Mozilla/5.0 (" + platform + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/"
                 + major + ".0.0.0 Safari/537.36";
+    }
+
+    BrowserUserAgent userAgent() {
+        String userAgent = headlessUserAgent();
+        if (userAgent == null || !properties.mode().headless()) return null;
+        String version = BundledBrowser.version();
+        String major = version.split("\\.")[0];
+        boolean windows = System.getProperty("os.name").startsWith("Windows");
+        ObjectNode metadata = mapper.createObjectNode();
+        metadata.set("brands", brands(mapper, major));
+        metadata.set("fullVersionList", fullVersionList(mapper, version));
+        metadata.put("fullVersion", version);
+        metadata.put("platform", windows ? "Windows" : "Linux");
+        metadata.put("platformVersion", windows ? "19.0.0" : "");
+        metadata.put("architecture", "x86");
+        metadata.put("bitness", "64");
+        metadata.put("model", "");
+        metadata.put("mobile", false);
+        metadata.put("wow64", false);
+        return new BrowserUserAgent(userAgent, metadata);
+    }
+
+    private static ArrayNode brands(ObjectMapper mapper, String major) {
+        ArrayNode entries = mapper.createArrayNode();
+        ObjectNode notBrand = entries.addObject();
+        notBrand.put("brand", "Not:A-Brand");
+        notBrand.put("version", "8");
+        ObjectNode chromium = entries.addObject();
+        chromium.put("brand", "Chromium");
+        chromium.put("version", major);
+        return entries;
+    }
+
+    private static ArrayNode fullVersionList(ObjectMapper mapper, String version) {
+        ArrayNode entries = mapper.createArrayNode();
+        ObjectNode notBrand = entries.addObject();
+        notBrand.put("brand", "Not:A-Brand");
+        notBrand.put("version", "8.0.0.0");
+        ObjectNode chromium = entries.addObject();
+        chromium.put("brand", "Chromium");
+        chromium.put("version", version);
+        return entries;
     }
 
     private boolean usesBundledBrowser() {

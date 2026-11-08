@@ -26,6 +26,14 @@ final class CdpTestPage implements AutoCloseable {
             ChromeBrowser browser,
             String url,
             BrowserEnvironmentProfile environment) {
+        return open(browser, url, environment, null);
+    }
+
+    static CdpTestPage open(
+            ChromeBrowser browser,
+            String url,
+            BrowserEnvironmentProfile environment,
+            BrowserUserAgent userAgent) {
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode create = mapper.createObjectNode();
         create.put("url", "about:blank");
@@ -35,7 +43,15 @@ final class CdpTestPage implements AutoCloseable {
         attach.put("flatten", true);
         String sessionId = browser.call("Target.attachToTarget", attach).path("sessionId").asString("");
         CdpSession session = new CdpSession(browser.connection(), sessionId);
-        BrowserPageEnvironment.apply(session, mapper, environment);
+        BrowserPageEnvironment.apply(session, mapper, environment, userAgent);
+        ObjectNode metrics = mapper.createObjectNode();
+        metrics.put("width", BrowserSession.DEFAULT_VIEWPORT_WIDTH);
+        metrics.put("height", BrowserSession.DEFAULT_VIEWPORT_HEIGHT);
+        metrics.put("deviceScaleFactor", environment.deviceScaleFactor() > 0 ? environment.deviceScaleFactor() : 1);
+        metrics.put("mobile", false);
+        metrics.put("screenWidth", BrowserViewport.HEADLESS_SCREEN_WIDTH);
+        metrics.put("screenHeight", BrowserViewport.HEADLESS_SCREEN_HEIGHT);
+        session.call("Emulation.setDeviceMetricsOverride", metrics);
         ObjectNode navigate = mapper.createObjectNode();
         navigate.put("url", url);
         session.call("Page.navigate", navigate);

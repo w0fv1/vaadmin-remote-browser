@@ -5,6 +5,8 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 final class BrowserViewport {
+    static final int HEADLESS_SCREEN_WIDTH = 1920;
+    static final int HEADLESS_SCREEN_HEIGHT = 1080;
     private final BrowserMode mode;
     private final String targetId;
     private final CdpSession session;
@@ -56,6 +58,10 @@ final class BrowserViewport {
         parameters.put("height", targetHeight);
         parameters.put("deviceScaleFactor", deviceScaleFactor);
         parameters.put("mobile", false);
+        parameters.put("screenWidth", Math.max(targetWidth, HEADLESS_SCREEN_WIDTH));
+        parameters.put("screenHeight", Math.max(targetHeight, HEADLESS_SCREEN_HEIGHT));
+        parameters.put("positionX", 0);
+        parameters.put("positionY", 0);
         session.call("Emulation.setDeviceMetricsOverride", parameters);
         readViewportMetrics();
         appliedWidth = targetWidth;
