@@ -76,17 +76,17 @@ final class PrivateSessionTest {
 
     @Test
     void persistentDirectSessionRetainsStorageAndRejectsConflictingPolicy() {
-        var manager = manager();
+        BrowserSessionManager manager = manager();
         try {
-            try (var first = manager.open(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT)) {
+            try (RemoteBrowserSession first = manager.open(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT)) {
                 first.evaluate("localStorage.setItem('persistent-fixture', 'saved')");
-                try (var shared = manager.open(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT)) {
+                try (RemoteBrowserSession shared = manager.open(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT)) {
                     assertThat(shared.sessionId()).isEqualTo(first.sessionId());
                 }
                 org.assertj.core.api.Assertions.assertThatThrownBy(() -> manager.open(BrowserProfileId.DEFAULT, baseUrl))
                         .hasMessageContaining("不同代理模式");
             }
-            try (var reopened = manager.open(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT)) {
+            try (RemoteBrowserSession reopened = manager.open(BrowserProfileId.DEFAULT, baseUrl, BrowserProxyMode.DIRECT)) {
                 assertThat(reopened.evaluate("localStorage.getItem('persistent-fixture')").asString()).isEqualTo("saved");
             }
         } finally { manager.shutdown(); }
