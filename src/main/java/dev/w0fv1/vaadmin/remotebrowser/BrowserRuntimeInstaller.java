@@ -16,6 +16,8 @@ import java.time.Duration;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.zip.ZipInputStream;
+import java.nio.channels.FileLock;
+import java.util.stream.Stream;
 
 final class BrowserRuntimeInstaller {
     private static final Duration DOWNLOAD_TIMEOUT = Duration.ofMinutes(30);
@@ -37,7 +39,7 @@ final class BrowserRuntimeInstaller {
             Path executable = destination.resolve(executableName);
             if (Files.isRegularFile(executable)) return executable;
             try (FileChannel lockChannel = FileChannel.open(cacheRoot.resolve(sha256 + ".lock"),
-                    StandardOpenOption.CREATE, StandardOpenOption.WRITE); var lock = lockChannel.lock()) {
+                    StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = lockChannel.lock()) {
                 if (Files.isRegularFile(executable)) return executable;
                 Path staging = Files.createTempDirectory(cacheRoot, "extract-");
                 try {
@@ -62,7 +64,7 @@ final class BrowserRuntimeInstaller {
                     Files.move(staging, destination, StandardCopyOption.ATOMIC_MOVE);
                 } finally {
                     if (Files.exists(staging)) {
-                        try (var paths = Files.walk(staging)) {
+                        try (Stream<Path> paths = Files.walk(staging)) {
                             for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(path);
                         }
                     }
@@ -98,7 +100,7 @@ final class BrowserRuntimeInstaller {
     private static String digest(Path archive) throws IOException {
         try {
             MessageDigest sha = MessageDigest.getInstance("SHA-256");
-            try (var input = Files.newInputStream(archive)) {
+            try (InputStream input = Files.newInputStream(archive)) {
                 byte[] buffer = new byte[65536];
                 int length;
                 while ((length = input.read(buffer)) != -1) sha.update(buffer, 0, length);

@@ -15,8 +15,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 final class BrowserRuntimeTest {
     @Test
     void directSessionDisablesProxyWithoutChangingSystemDefault() {
-        var runtime = runtime(BrowserMode.HEADLESS);
-        var environment = BrowserEnvironmentProfile.nativeProfile(BrowserProfileId.DEFAULT);
+        BrowserRuntime runtime = runtime(BrowserMode.HEADLESS);
+        BrowserEnvironmentProfile environment = BrowserEnvironmentProfile.nativeProfile(BrowserProfileId.DEFAULT);
         assertThat(runtime.arguments(profileRoot, environment, BrowserProxyMode.DIRECT)).contains("--no-proxy-server");
         assertThat(runtime.arguments(profileRoot, environment, BrowserProxyMode.SYSTEM)).doesNotContain("--no-proxy-server");
     }

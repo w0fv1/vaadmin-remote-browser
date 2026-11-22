@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import tools.jackson.databind.node.ObjectNode;
 
 final class BrowserResourceLoader {
     private final CdpSession session;
@@ -26,9 +27,9 @@ final class BrowserResourceLoader {
         }
         if (contentTypePrefix == null || contentTypePrefix.isBlank()) { throw new IllegalArgumentException("请指定资源类型"); }
         String frameId = session.call("Page.getFrameTree", null).path("frameTree").path("frame").path("id").asString();
-        var pending = new CompletableFuture<JsonNode>();
-        var responses = new ConcurrentHashMap<String, JsonNode>();
-        var lastResponse = new AtomicReference<>("尚未收到响应");
+        CompletableFuture<JsonNode> pending = new CompletableFuture<JsonNode>();
+        ConcurrentHashMap<String, JsonNode> responses = new ConcurrentHashMap<String, JsonNode>();
+        AtomicReference<String> lastResponse = new AtomicReference<>("尚未收到响应");
         Runnable responseListener = session.on("Network.responseReceived", event -> {
             if (!event.path("frameId").asString("").equals(frameId) || !event.path("type").asString().equals("Document")) { return; }
             JsonNode response = event.path("response");
@@ -44,7 +45,7 @@ final class BrowserResourceLoader {
             if (response != null) { pending.complete(response); }
         });
         try {
-            var network = mapper.createObjectNode().put("maxTotalBufferSize", 40 * 1024 * 1024).put("maxResourceBufferSize", 20 * 1024 * 1024);
+            ObjectNode network = mapper.createObjectNode().put("maxTotalBufferSize", 40 * 1024 * 1024).put("maxResourceBufferSize", 20 * 1024 * 1024);
             session.call("Network.enable", network);
             JsonNode navigation = session.call("Page.navigate", mapper.createObjectNode().put("url", url));
             if (navigation.hasNonNull("errorText")) { throw new IllegalStateException("资源导航失败：" + navigation.path("errorText").asString()); }

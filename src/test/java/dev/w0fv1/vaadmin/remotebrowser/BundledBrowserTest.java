@@ -11,7 +11,7 @@ class BundledBrowserTest {
 
     @Test void extractsNestedResources() throws Exception {
         Path archive = directory.resolve("input.zip");
-        try (var output = new ZipOutputStream(Files.newOutputStream(archive))) {
+        try (java.util.zip.ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(archive))) {
             output.putNextEntry(new ZipEntry("locales/en-US.pak"));
             output.write("payload".getBytes());
         }
@@ -21,7 +21,7 @@ class BundledBrowserTest {
 
     @Test void rejectsArchiveTraversal() throws Exception {
         Path archive = directory.resolve("input.zip");
-        try (var output = new ZipOutputStream(Files.newOutputStream(archive))) {
+        try (java.util.zip.ZipOutputStream output = new ZipOutputStream(Files.newOutputStream(archive))) {
             output.putNextEntry(new ZipEntry("../outside"));
             output.write(1);
         }
