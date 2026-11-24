@@ -51,6 +51,16 @@ final class BrowserSessionManager implements RemoteBrowser {
     }
 
     @Override
+    public String attachPage(String pageId) {
+        for (BrowserSession session : sessions.values()) {
+            if (session.state().tabs().stream().anyMatch(tab -> tab.id().equals(pageId)) && session.attachPage(pageId)) {
+                return session.id();
+            }
+        }
+        throw new java.util.NoSuchElementException("页面已关闭");
+    }
+
+    @Override
     public String streamPath() {
         return properties.websocketPath();
     }

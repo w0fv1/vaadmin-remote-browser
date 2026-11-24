@@ -12,6 +12,8 @@ public final class RemoteBrowserSession implements AutoCloseable {
         this.release = release;
     }
 
+    public String pageId() { return session.state().activeTabId(); }
+
     public String sessionId() {
         return session.id();
     }
