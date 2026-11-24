@@ -301,14 +301,21 @@ final class BrowserSession {
     }
 
     public void activateTab(String tabId) {
-        execute(() -> {
-            BrowserTab tab = tabs.get(tabId);
-            if (tab == null) return;
-            activeTabId = tab.id();
-            tab.activate();
-            tab.resize(viewportWidth, viewportHeight);
-            publish();
-        });
+        execute(() -> activateExistingTab(tabId));
+    }
+
+    boolean attachPage(String pageId) {
+        return submit(() -> activateExistingTab(pageId));
+    }
+
+    private boolean activateExistingTab(String tabId) {
+        BrowserTab tab = tabs.get(tabId);
+        if (tab == null) return false;
+        activeTabId = tab.id();
+        tab.activate();
+        tab.resize(viewportWidth, viewportHeight);
+        publish();
+        return true;
     }
 
     public void closeTab(String tabId) {

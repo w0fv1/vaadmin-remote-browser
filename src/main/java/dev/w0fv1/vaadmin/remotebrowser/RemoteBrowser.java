@@ -32,5 +32,7 @@ public interface RemoteBrowser {
 
     boolean isOpen(BrowserProfileId profileId);
 
+    String attachPage(String pageId);
+
     String streamPath();
 }

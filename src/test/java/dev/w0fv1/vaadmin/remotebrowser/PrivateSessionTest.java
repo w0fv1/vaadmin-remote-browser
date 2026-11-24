@@ -45,6 +45,22 @@ final class PrivateSessionTest {
     }
 
     @Test
+    void attachingAPageSelectsItsOriginalTabAndRejectsClosedTabs() {
+        BrowserSessionManager manager = manager();
+        try (RemoteBrowserSession handle = manager.openPrivate(BrowserProfileId.DEFAULT, baseUrl)) {
+            String page = handle.pageId();
+            handle.session().openTab(baseUrl + "/second");
+            await().atMost(Duration.ofSeconds(15)).until(() -> !page.equals(handle.pageId()));
+            assertThat(manager.attachPage(page)).isEqualTo(handle.sessionId());
+            assertThat(handle.pageId()).isEqualTo(page);
+            handle.session().closeTab(page);
+            await().atMost(Duration.ofSeconds(15)).until(() -> !page.equals(handle.pageId()));
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> manager.attachPage(page))
+                    .isInstanceOf(java.util.NoSuchElementException.class);
+        } finally { manager.shutdown(); }
+    }
+
+    @Test
     void privateSessionStartsCleanAndLeavesNothingBehind() throws Exception {
         BrowserSessionManager manager = manager();
         try {
