@@ -1,6 +1,9 @@
 package dev.w0fv1.vaadmin.remotebrowser;
 
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.StandardOpenOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -26,16 +29,29 @@ final class BrowserProfileRegistry {
             throw new IllegalArgumentException("浏览器配置路径无效");
         }
         BrowserEnvironmentProfile environment = environments.read(identifier);
-        if (!activeProfiles.add(directory)) {
-            throw new IllegalStateException("浏览器配置目录正在使用: " + profileId);
-        }
         try {
             Files.createDirectories(directory);
-            return new BrowserProfileLease(
-                    directory, environment, () -> activeProfiles.remove(directory));
-        } catch (IOException | RuntimeException failure) {
-            activeProfiles.remove(directory);
-            throw new IllegalStateException("无法创建浏览器配置目录: " + profileId, failure);
+            FileChannel owner = FileChannel.open(directory.resolve(".profile.lock"),
+                    StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            try {
+                if (owner.tryLock() == null) {
+                    throw new IllegalStateException("浏览器配置目录正在使用: " + profileId);
+                }
+                return new BrowserProfileLease(directory, environment, () -> {
+                    try {
+                        owner.close();
+                    } catch (IOException failure) {
+                        throw new IllegalStateException("无法释放浏览器配置目录: " + profileId, failure);
+                    }
+                });
+            } catch (IOException | RuntimeException failure) {
+                owner.close();
+                throw failure;
+            }
+        } catch (OverlappingFileLockException failure) {
+            throw new IllegalStateException("浏览器配置目录正在使用: " + profileId, failure);
+        } catch (IOException failure) {
+            throw new IllegalStateException("无法打开浏览器配置目录: " + profileId, failure);
         }
     }
 

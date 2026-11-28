@@ -16,6 +16,12 @@ final class BundledBrowser {
     private BundledBrowser() {
     }
 
+    static Path home() {
+        String configured = System.getProperty("browser.remote.home");
+        return configured == null ? Path.of(System.getProperty("user.home"), ".vaadmin-remote-browser")
+                : Path.of(configured).toAbsolutePath().normalize();
+    }
+
     static synchronized Path executable() {
         try {
             JsonNode lock = lock();
@@ -25,7 +31,7 @@ final class BundledBrowser {
             String sha256 = entry.path("runtimeSha256").asString("");
             String url = entry.path("runtimeUrl").asString("");
             String executableName = "win64".equals(platform) ? "chrome.exe" : "chrome";
-            Path cacheRoot = Path.of(System.getProperty("user.home"), ".vaadmin-remote-browser", "runtime");
+            Path cacheRoot = home().resolve("runtime");
             return new BrowserRuntimeInstaller(cacheRoot)
                     .install(sha256, executableName, url, bundledArchive());
         } catch (RuntimeException failure) {

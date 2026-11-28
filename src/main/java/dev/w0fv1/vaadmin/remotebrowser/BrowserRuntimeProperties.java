@@ -28,8 +28,7 @@ public record BrowserRuntimeProperties(
         if (channel == null) {
             channel = BrowserChannel.CHROME;
         }
-        Path defaultProfileRoot = Path.of(
-                System.getProperty("user.home"), ".vaadmin-remote-browser", "profiles");
+        Path defaultProfileRoot = BundledBrowser.home().resolve("profiles");
         Path configuredProfileRoot = defaultProfileRoot;
         if (profileRoot != null) {
             configuredProfileRoot = profileRoot;

@@ -18,6 +18,18 @@ final class BrowserProfileRegistryTest {
     Path root;
 
     @Test
+    void independentRegistriesCannotOpenTheSamePersistentProfile() {
+        BrowserProfileRegistry first = new BrowserProfileRegistry(root, store());
+        BrowserProfileRegistry second = new BrowserProfileRegistry(root, store());
+        try (BrowserProfileLease owner = first.acquire("shared")) {
+            assertThatThrownBy(() -> second.acquire("shared")).isInstanceOf(IllegalStateException.class);
+        }
+        try (BrowserProfileLease owner = second.acquire("shared")) {
+            assertThat(owner.directory()).isEqualTo(root.resolve("shared"));
+        }
+    }
+
+    @Test
     void leasesNamedProfileExclusivelyAndReleasesOnClose() throws Exception {
         BrowserProfileRegistry registry = new BrowserProfileRegistry(root, store());
 
