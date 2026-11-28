@@ -6,7 +6,7 @@
 
 运行时包不进入业务 JAR：构建时只打包 `browser-lock.json`，运行期按需下载运行时包并缓存。发布新版本运行时由 [prepare.py](../runtime/prepare.py) 产出（原包下载 + Debian 包解包 + `ldd` 闭包库 + CJK/阿拉伯字体 + locale 裁剪），上传到同名 GitHub Release，再把 `runtimeUrl` 与 `runtimeSha256` 写回清单；本地测试资源由 [fetch.py](../runtime/fetch.py) 拉取。
 
-运行时不安装系统软件。首次使用按清单摘要下载并校验，解包至 `~/.vaadmin-remote-browser/runtime/<sha256>`，同一内容后续启动直接复用；不同内容使用独立目录。文件锁与原子移动保护并发解包。实现与测试见 [BundledBrowser](../src/main/java/dev/w0fv1/vaadmin/remotebrowser/BundledBrowser.java)、[BrowserRuntimeInstaller](../src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserRuntimeInstaller.java)、[BrowserRuntimeInstallerTest](../src/test/java/dev/w0fv1/vaadmin/remotebrowser/BrowserRuntimeInstallerTest.java)。
+可通过 JVM 参数 `-Dbrowser.remote.home=/absolute/path` 指定浏览器根目录，其中 `runtime/` 保存发行包，`profiles/` 保存浏览器配置。首次使用按清单摘要下载并校验，解包至 `~/.vaadmin-remote-browser/runtime/<sha256>`，同一内容后续启动直接复用；不同内容使用独立目录。文件锁与原子移动保护并发解包。实现与测试见 [BundledBrowser](../src/main/java/dev/w0fv1/vaadmin/remotebrowser/BundledBrowser.java)、[BrowserRuntimeInstaller](../src/main/java/dev/w0fv1/vaadmin/remotebrowser/BrowserRuntimeInstaller.java)、[BrowserRuntimeInstallerTest](../src/test/java/dev/w0fv1/vaadmin/remotebrowser/BrowserRuntimeInstallerTest.java)。
 
 显式配置 `browser.remote.executable` 可使用宿主提供的可执行文件，Edge 通道使用本地查找。Linux 包携带动态库与 Noto 多语言字体，不要求在生产机安装 Chromium；宿主仍需满足上述 Linux 基线及浏览器沙箱运行条件。
 

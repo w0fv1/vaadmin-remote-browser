@@ -16,6 +16,20 @@ final class BrowserRuntimePropertiesTest {
             .withUserConfiguration(PropertiesConfiguration.class);
 
     @Test
+    @org.junit.jupiter.api.parallel.ResourceLock(org.junit.jupiter.api.parallel.Resources.SYSTEM_PROPERTIES)
+    void configuredHomeOwnsProfilesAndRuntime(@org.junit.jupiter.api.io.TempDir Path directory) {
+        String previous = System.setProperty("browser.remote.home", directory.toString());
+        try {
+            BrowserRuntimeProperties properties = new BrowserRuntimeProperties(null, null, null, null);
+            assertThat(properties.profileRoot()).isEqualTo(directory.resolve("profiles"));
+            assertThat(BundledBrowser.home().resolve("runtime")).isEqualTo(directory.resolve("runtime"));
+        } finally {
+            if (previous == null) System.clearProperty("browser.remote.home");
+            else System.setProperty("browser.remote.home", previous);
+        }
+    }
+
+    @Test
     void defaultsToHeadedChromeAndPersistentProfileRoot() {
         BrowserRuntimeProperties properties = new BrowserRuntimeProperties(null, null, null, null);
 
